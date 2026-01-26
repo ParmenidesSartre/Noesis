@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-cd backend && npx --no -- commitlint --edit $1
+cd backend && pnpm exec commitlint --edit $1

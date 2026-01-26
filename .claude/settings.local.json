@@ -22,7 +22,14 @@
       "Bash(git push:*)",
       "Bash(git remote:*)",
       "Bash(git checkout:*)",
-      "Bash(pnpm prisma format:*)"
+      "Bash(pnpm prisma format:*)",
+      "Bash(pnpm prisma migrate dev:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm run prepare:*)",
+      "Bash(pnpm exec husky:*)",
+      "Bash(git config:*)",
+      "Bash(pnpm exec eslint \"{src,test}/**/*.ts\" --format=compact)"
     ]
   }
 }
