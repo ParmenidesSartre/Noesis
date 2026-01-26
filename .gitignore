@@ -49,3 +49,4 @@ Thumbs.db
 
 # Misc
 *.pem
+.claude/
