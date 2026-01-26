@@ -29,7 +29,9 @@
       "Bash(pnpm run prepare:*)",
       "Bash(pnpm exec husky:*)",
       "Bash(git config:*)",
-      "Bash(pnpm exec eslint \"{src,test}/**/*.ts\" --format=compact)"
+      "Bash(pnpm exec eslint \"{src,test}/**/*.ts\" --format=compact)",
+      "Bash(pnpm exec eslint:*)",
+      "Bash(git reset:*)"
     ]
   }
 }

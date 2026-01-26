@@ -9,6 +9,7 @@ import {
 } from '@nestjs/terminus';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 /**
  * Health check controller
@@ -17,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
  */
 @ApiTags('Health')
 @Controller('health')
+@Public() // Health endpoints are public for monitoring
 export class HealthController {
   constructor(
     private health: HealthCheckService,
