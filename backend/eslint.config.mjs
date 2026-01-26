@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: ['eslint.config.mjs', 'dist/**', 'node_modules/**', 'generated/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -26,10 +26,65 @@ export default tseslint.config(
   },
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
+      // Prettier integration
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+
+      // TypeScript strict rules (enforce coding standards)
+      '@typescript-eslint/no-explicit-any': 'error', // Enforce: No 'any' types
+      '@typescript-eslint/explicit-function-return-type': 'off', // Allow inference
+      '@typescript-eslint/explicit-module-boundary-types': 'off', // Allow inference
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ], // Enforce: No unused variables (except prefixed with _)
+
+      // Naming conventions (enforce coding standards)
+      '@typescript-eslint/naming-convention': [
+        'error',
+        {
+          selector: 'default',
+          format: ['camelCase'],
+          leadingUnderscore: 'allow',
+          trailingUnderscore: 'allow',
+        },
+        {
+          selector: 'variable',
+          format: ['camelCase', 'UPPER_CASE'], // Allow constants
+          leadingUnderscore: 'allow',
+        },
+        {
+          selector: 'parameter',
+          format: ['camelCase'],
+          leadingUnderscore: 'allow',
+        },
+        {
+          selector: 'typeLike', // Classes, Interfaces, Enums
+          format: ['PascalCase'],
+        },
+        {
+          selector: 'enumMember',
+          format: ['UPPER_CASE'], // Enum values
+        },
+        {
+          selector: 'property',
+          format: null, // Allow any format for object properties (DTO fields, etc.)
+        },
+      ],
+
+      // Code quality
+      '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-return': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+
+      // Best practices
+      'no-console': ['warn', { allow: ['warn', 'error'] }], // Warn on console.log
+      'no-debugger': 'error',
+      'prefer-const': 'error',
+      'no-var': 'error',
+      'eqeqeq': ['error', 'always'], // Enforce === instead of ==
     },
   },
 );
