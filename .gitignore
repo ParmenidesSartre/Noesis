@@ -24,8 +24,7 @@ backend/build/
 .env.test.local
 .env.production.local
 
-# IDE
-.vscode/
+# IDE - Allow .vscode for team settings
 .idea/
 *.swp
 *.swo

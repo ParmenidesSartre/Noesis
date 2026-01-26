@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "prisma.prisma",
+    "bradlc.vscode-tailwindcss",
+    "firsttris.vscode-jest-runner",
+    "christian-kohler.path-intellisense",
+    "visualstudioexptteam.vscodeintellicode"
+  ]
+}
