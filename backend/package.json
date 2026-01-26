@@ -24,6 +24,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:format": "prisma format",
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "db:seed": "prisma db seed",
     "code:check": "pnpm run format:check && pnpm run lint && pnpm run test",
     "prepare": "cd .. && husky backend/.husky"
   },
@@ -90,6 +92,9 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "jest": {
     "moduleFileExtensions": [
