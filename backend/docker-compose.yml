@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    container_name: tuition-centre-postgres
+    environment:
+      POSTGRES_USER: tuition_admin
+      POSTGRES_PASSWORD: dev_password_123
+      POSTGRES_DB: tuition_centre_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tuition-network
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    container_name: tuition-centre-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - tuition-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  tuition-network:
+    driver: bridge

@@ -1,0 +1,416 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  SUPER_ADMIN
+  BRANCH_ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  GRADUATED
+  WITHDRAWN
+  SUSPENDED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+// Models
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  branchId  Int?
+
+  // For teachers
+  teacher   Teacher?
+
+  // For students
+  student   Student?
+
+  // For parents
+  parent    Parent?
+
+  @@map("users")
+  @@index([email])
+  @@index([branchId])
+}
+
+model Branch {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users     User[]
+  students  Student[]
+  teachers  Teacher[]
+  classes   Class[]
+  rooms     Room[]
+
+  @@map("branches")
+  @@index([code])
+}
+
+model Student {
+  id            Int           @id @default(autoincrement())
+  userId        Int           @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  branchId      Int
+  branch        Branch        @relation(fields: [branchId], references: [id])
+
+  studentCode   String        @unique
+  dateOfBirth   DateTime?
+  grade         String?
+  status        StudentStatus @default(ACTIVE)
+  enrollmentDate DateTime     @default(now())
+
+  // Medical and special needs
+  medicalInfo   String?
+  allergies     String?
+  specialNeeds  String?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  parents       ParentStudent[]
+  enrollments   Enrollment[]
+  attendances   Attendance[]
+  grades        Grade[]
+
+  @@map("students")
+  @@index([studentCode])
+  @@index([branchId])
+  @@index([userId])
+}
+
+model Parent {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  occupation    String?
+  company       String?
+  emergencyContact String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  students      ParentStudent[]
+
+  @@map("parents")
+}
+
+model ParentStudent {
+  id         Int      @id @default(autoincrement())
+  parentId   Int
+  parent     Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  studentId  Int
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  relationship String  // e.g., "Father", "Mother", "Guardian"
+  isPrimary    Boolean @default(false)
+
+  createdAt  DateTime @default(now())
+
+  @@map("parent_student")
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+}
+
+model Teacher {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  branchId      Int
+  branch        Branch   @relation(fields: [branchId], references: [id])
+
+  teacherCode   String   @unique
+  specialization String?
+  qualifications String?
+  experience    Int?     // years of experience
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  classes       Class[]
+  attendances   Attendance[]
+
+  @@map("teachers")
+  @@index([teacherCode])
+  @@index([branchId])
+}
+
+model Course {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  description String?
+  level       String?  // e.g., "Primary 1", "Secondary 3"
+  subject     String   // e.g., "Mathematics", "Science"
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  classes     Class[]
+  fees        Fee[]
+
+  @@map("courses")
+  @@index([code])
+  @@index([subject])
+}
+
+model Room {
+  id        Int      @id @default(autoincrement())
+  branchId  Int
+  branch    Branch   @relation(fields: [branchId], references: [id])
+
+  name      String
+  capacity  Int
+  facilities String? // JSON string of facilities
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  classes   Class[]
+
+  @@map("rooms")
+  @@index([branchId])
+}
+
+model Class {
+  id          Int      @id @default(autoincrement())
+  branchId    Int
+  branch      Branch   @relation(fields: [branchId], references: [id])
+
+  courseId    Int
+  course      Course   @relation(fields: [courseId], references: [id])
+
+  teacherId   Int
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+
+  roomId      Int?
+  room        Room?    @relation(fields: [roomId], references: [id])
+
+  name        String
+  classCode   String   @unique
+  schedule    String   // JSON string of schedule
+  startDate   DateTime
+  endDate     DateTime
+  capacity    Int
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  enrollments Enrollment[]
+  attendances Attendance[]
+  assignments Assignment[]
+  grades      Grade[]
+
+  @@map("classes")
+  @@index([classCode])
+  @@index([branchId])
+  @@index([courseId])
+  @@index([teacherId])
+}
+
+model Enrollment {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  classId     Int
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  enrollmentDate DateTime @default(now())
+  status      String   @default("active") // active, completed, withdrawn
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  invoices    Invoice[]
+
+  @@map("enrollments")
+  @@unique([studentId, classId])
+  @@index([studentId])
+  @@index([classId])
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  classId   Int
+  class     Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  teacherId Int
+  teacher   Teacher          @relation(fields: [teacherId], references: [id])
+
+  date      DateTime
+  status    AttendanceStatus
+  remarks   String?
+
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@map("attendances")
+  @@unique([classId, studentId, date])
+  @@index([classId])
+  @@index([studentId])
+  @@index([date])
+}
+
+model Assignment {
+  id          Int      @id @default(autoincrement())
+  classId     Int
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  dueDate     DateTime
+  maxScore    Float?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("assignments")
+  @@index([classId])
+}
+
+model Grade {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  classId     Int
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  assessment  String   // e.g., "Quiz 1", "Final Exam"
+  score       Float
+  maxScore    Float
+  grade       String?  // e.g., "A", "B+"
+  remarks     String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("grades")
+  @@index([studentId])
+  @@index([classId])
+}
+
+model Fee {
+  id          Int      @id @default(autoincrement())
+  courseId    Int
+  course      Course   @relation(fields: [courseId], references: [id])
+
+  name        String
+  amount      Float
+  frequency   String   // e.g., "monthly", "term", "one-time"
+  description String?
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("fees")
+  @@index([courseId])
+}
+
+model Invoice {
+  id            Int           @id @default(autoincrement())
+  enrollmentId  Int
+  enrollment    Enrollment    @relation(fields: [enrollmentId], references: [id])
+
+  invoiceNumber String        @unique
+  amount        Float
+  dueDate       DateTime
+  status        PaymentStatus @default(PENDING)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  payments      Payment[]
+
+  @@map("invoices")
+  @@index([invoiceNumber])
+  @@index([enrollmentId])
+  @@index([status])
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  invoiceId     Int
+  invoice       Invoice       @relation(fields: [invoiceId], references: [id])
+
+  amount        Float
+  paymentMethod String        // e.g., "cash", "card", "bank_transfer"
+  paymentDate   DateTime      @default(now())
+  reference     String?
+  remarks       String?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("payments")
+  @@index([invoiceId])
+  @@index([paymentDate])
+}
