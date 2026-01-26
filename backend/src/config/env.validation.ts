@@ -17,6 +17,9 @@ export const envValidationSchema = Joi.object({
 
   // Database
   DATABASE_URL: Joi.string().required().description('PostgreSQL connection string'),
+  DATABASE_READ_REPLICA_URL: Joi.string()
+    .optional()
+    .description('PostgreSQL read replica connection string (optional)'),
 
   // Redis
   REDIS_HOST: Joi.string().default('localhost'),
