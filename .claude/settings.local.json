@@ -16,7 +16,8 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(npx husky init)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(git remote add:*)"
     ]
   }
 }

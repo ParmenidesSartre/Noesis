@@ -1,0 +1,97 @@
+# Docker Compose for Production Deployment
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+#
+# IMPORTANT:
+# - Replace all placeholder values with real credentials
+# - Use environment variables or .env.production file
+# - Enable SSL/TLS for all services
+# - Use managed services (AWS RDS, ElastiCache) in production
+
+version: '3.8'
+
+services:
+  # NestJS Backend (Production)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: tuition-centre-backend-prod
+    restart: always
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # Use AWS RDS in production
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_READ_REPLICA_URL: ${DATABASE_READ_REPLICA_URL}
+      # Use AWS ElastiCache in production
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_TLS: ${REDIS_TLS:-true}
+      # Security
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      # CORS
+      FRONTEND_URL: ${FRONTEND_URL}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      # Monitoring
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      # Mount logs directory (for persistence)
+      - ./logs:/app/logs
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3001/health/liveness || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits (adjust based on your instance)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    # Logging configuration
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - tuition-network
+
+  # Nginx Reverse Proxy (Optional - for SSL termination)
+  nginx:
+    image: nginx:alpine
+    container_name: tuition-centre-nginx
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - tuition-network
+
+networks:
+  tuition-network:
+    driver: bridge
+
+# Production Notes:
+# 1. Use .env.production file for environment variables
+# 2. Never commit .env.production to version control
+# 3. Use AWS RDS (not local PostgreSQL)
+# 4. Use AWS ElastiCache (not local Redis)
+# 5. Enable SSL/TLS for all connections
+# 6. Use AWS Secrets Manager for credentials
+# 7. Enable CloudWatch logs integration
+# 8. Use AWS ECS/Fargate or Kubernetes for orchestration
