@@ -49,7 +49,7 @@ export class HealthController {
       // Check disk storage (should have at least 50% free)
       () =>
         this.disk.checkStorage('storage', {
-          path: '/',
+          path: process.platform === 'win32' ? 'C:/' : '/',
           thresholdPercent: 0.5,
         }),
     ]);
