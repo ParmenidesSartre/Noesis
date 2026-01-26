@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/naming-convention
 import * as Joi from 'joi';
 
 /**
@@ -7,9 +8,7 @@ import * as Joi from 'joi';
  */
 export const envValidationSchema = Joi.object({
   // Node Environment
-  NODE_ENV: Joi.string()
-    .valid('development', 'production', 'test')
-    .default('development'),
+  NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
 
   // Application
   PORT: Joi.number().default(3001),
@@ -26,10 +25,7 @@ export const envValidationSchema = Joi.object({
   REDIS_PORT: Joi.number().default(6379),
 
   // JWT
-  JWT_SECRET: Joi.string()
-    .required()
-    .min(32)
-    .description('JWT secret key (minimum 32 characters)'),
+  JWT_SECRET: Joi.string().required().min(32).description('JWT secret key (minimum 32 characters)'),
   JWT_EXPIRATION: Joi.string().default('1d'),
   JWT_REFRESH_EXPIRATION: Joi.string().default('7d'),
 

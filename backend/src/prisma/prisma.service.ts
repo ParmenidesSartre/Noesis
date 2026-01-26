@@ -11,10 +11,7 @@ import { LoggerService } from '../common/logger/logger.service';
  * Production: Separate read/write instances
  */
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readClient: PrismaClient | null = null;
   private readonly logger: LoggerService;
 
@@ -50,9 +47,7 @@ export class PrismaService
     this.logger = new LoggerService('PrismaService');
 
     // Initialize read replica if configured
-    const readReplicaUrl = configService.get<string>(
-      'DATABASE_READ_REPLICA_URL',
-    );
+    const readReplicaUrl = configService.get<string>('DATABASE_READ_REPLICA_URL');
     if (readReplicaUrl && readReplicaUrl !== writeUrl) {
       this.logger.log('Initializing read replica connection');
       this.readClient = new PrismaClient({
@@ -97,10 +92,7 @@ export class PrismaService
         this.logger.log('✅ Read replica connection established');
       }
     } catch (error) {
-      this.logger.error(
-        'Failed to connect to database',
-        (error as Error).stack,
-      );
+      this.logger.error('Failed to connect to database', (error as Error).stack);
       throw error;
     }
   }

@@ -1,6 +1,7 @@
-import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
+import { Injectable, LoggerService as NestLoggerService, Optional } from '@nestjs/common';
 import * as winston from 'winston';
-import * as DailyRotateFile from 'winston-daily-rotate-file';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import DailyRotateFile = require('winston-daily-rotate-file');
 
 /**
  * Custom logger service using Winston
@@ -10,10 +11,10 @@ import * as DailyRotateFile from 'winston-daily-rotate-file';
 @Injectable()
 export class LoggerService implements NestLoggerService {
   private logger: winston.Logger;
-  private context?: string;
+  private context: string;
 
-  constructor(context?: string) {
-    this.context = context;
+  constructor(@Optional() context?: string) {
+    this.context = context || 'Application';
     this.logger = this.createLogger();
   }
 
@@ -36,7 +37,15 @@ export class LoggerService implements NestLoggerService {
     const consoleFormat = winston.format.combine(
       winston.format.colorize(),
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-      winston.format.printf(({ timestamp, level, message, context, trace }) => {
+      winston.format.printf((info) => {
+        const timestamp = String(info.timestamp);
+        const level = String(info.level);
+        const message = String(info.message);
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        const context = info.context ? String(info.context) : '';
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        const trace = info.trace ? String(info.trace) : '';
+
         const contextStr = context ? ` [${context}]` : '';
         const traceStr = trace ? `\n${trace}` : '';
         return `${timestamp} ${level}${contextStr}: ${message}${traceStr}`;
