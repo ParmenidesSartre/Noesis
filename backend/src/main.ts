@@ -2,7 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
-import * as compression from 'compression';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import compression = require('compression');
 import { AppModule } from './app.module';
 import { LoggerService } from './common/logger/logger.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -19,10 +20,13 @@ async function bootstrap() {
   app.useLogger(logger);
 
   // Security middleware
-  app.use(helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === 'production',
-    crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production',
-  }));
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  app.use(
+    helmet({
+      contentSecurityPolicy: process.env.NODE_ENV === 'production',
+      crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production',
+    }),
+  );
 
   // Compression middleware
   app.use(compression());
@@ -95,17 +99,19 @@ async function bootstrap() {
   // Graceful shutdown handlers
   const signals: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
   signals.forEach((signal) => {
-    process.on(signal, async () => {
-      logger.warn(`Received ${signal}, starting graceful shutdown...`);
+    process.on(signal, () => {
+      void (async () => {
+        logger.warn(`Received ${signal}, starting graceful shutdown...`);
 
-      try {
-        await app.close();
-        logger.log('Application closed successfully');
-        process.exit(0);
-      } catch (error) {
-        logger.error('Error during graceful shutdown', (error as Error).stack);
-        process.exit(1);
-      }
+        try {
+          await app.close();
+          logger.log('Application closed successfully');
+          process.exit(0);
+        } catch (error) {
+          logger.error('Error during graceful shutdown', (error as Error).stack);
+          process.exit(1);
+        }
+      })();
     });
   });
 

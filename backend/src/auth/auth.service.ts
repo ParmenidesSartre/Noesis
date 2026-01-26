@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RegisterTenantDto } from './dto/register-tenant.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
-import { Role, SubscriptionPlan, SubscriptionPlanStatus } from '@prisma/client';
+import { Role, SubscriptionPlan, PlanStatus } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -51,7 +51,7 @@ export class AuthService {
           address: dto.organizationAddress,
           country: dto.organizationCountry,
           plan: dto.plan || SubscriptionPlan.FREE_TRIAL,
-          planStatus: SubscriptionPlanStatus.TRIAL,
+          planStatus: PlanStatus.TRIAL,
           trialEndsAt,
           isActive: true,
         },
