@@ -9,6 +9,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { CreateStudentDto } from './dto/create-student.dto';
+import { UpdateTeacherProfileDto } from './dto/update-teacher-profile.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { Role, Prisma } from '@prisma/client';
@@ -695,5 +696,249 @@ export class UsersService {
     });
 
     return { message: 'Password set successfully' };
+  }
+
+  /**
+   * Get detailed teacher profile
+   * Teachers can view their own profile
+   * Admins can view any teacher profile in their scope
+   */
+  async getTeacherProfile(
+    teacherId: number,
+    organizationId: number,
+    currentUserId: number,
+    currentUserRole: Role,
+    currentUserBranchId?: number,
+  ) {
+    // Build where clause based on role
+    const where: Prisma.TeacherWhereInput = {
+      id: teacherId,
+      organizationId,
+    };
+
+    // Branch admins can only view teachers in their branch
+    if (currentUserRole === Role.BRANCH_ADMIN && currentUserBranchId) {
+      where.branchId = currentUserBranchId;
+    }
+
+    const teacher = await this.prisma.teacher.findFirst({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            phone: true,
+            address: true,
+            dateOfBirth: true,
+            gender: true,
+            profilePhoto: true,
+            employeeId: true,
+            employmentStartDate: true,
+            emergencyContactName: true,
+            emergencyContactPhone: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        branch: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    // Teachers can only view their own profile
+    if (currentUserRole === Role.TEACHER && teacher.userId !== currentUserId) {
+      throw new ForbiddenException('You can only view your own profile');
+    }
+
+    // Parse JSON fields
+    const profile = {
+      ...teacher,
+      primarySubjects: teacher.primarySubjects ? JSON.parse(teacher.primarySubjects) : [],
+      secondarySubjects: teacher.secondarySubjects ? JSON.parse(teacher.secondarySubjects) : [],
+      gradeLevels: teacher.gradeLevels ? JSON.parse(teacher.gradeLevels) : [],
+      languagesSpoken: teacher.languagesSpoken ? JSON.parse(teacher.languagesSpoken) : [],
+      certifications: teacher.certifications ? JSON.parse(teacher.certifications) : [],
+      workSchedule: teacher.workSchedule ? JSON.parse(teacher.workSchedule) : null,
+      documentsMetadata: teacher.documentsMetadata ? JSON.parse(teacher.documentsMetadata) : null,
+    };
+
+    return profile;
+  }
+
+  /**
+   * Update teacher professional profile
+   * Teachers can update their own profile
+   * Admins can update teacher profiles in their scope
+   */
+  async updateTeacherProfile(
+    teacherId: number,
+    dto: UpdateTeacherProfileDto,
+    organizationId: number,
+    currentUserId: number,
+    currentUserRole: Role,
+    currentUserBranchId?: number,
+  ) {
+    // Build where clause based on role
+    const where: Prisma.TeacherWhereInput = {
+      id: teacherId,
+      organizationId,
+    };
+
+    // Branch admins can only update teachers in their branch
+    if (currentUserRole === Role.BRANCH_ADMIN && currentUserBranchId) {
+      where.branchId = currentUserBranchId;
+    }
+
+    const teacher = await this.prisma.teacher.findFirst({
+      where,
+      include: { user: true },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    // Teachers can only update their own profile
+    if (currentUserRole === Role.TEACHER && teacher.userId !== currentUserId) {
+      throw new ForbiddenException('You can only update your own profile');
+    }
+
+    // Prepare update data - stringify JSON fields
+    const updateData: Prisma.TeacherUpdateInput = {};
+
+    if (dto.primarySubjects !== undefined) {
+      updateData.primarySubjects = JSON.stringify(dto.primarySubjects);
+    }
+    if (dto.secondarySubjects !== undefined) {
+      updateData.secondarySubjects = JSON.stringify(dto.secondarySubjects);
+    }
+    if (dto.gradeLevels !== undefined) {
+      updateData.gradeLevels = JSON.stringify(dto.gradeLevels);
+    }
+    if (dto.languagesSpoken !== undefined) {
+      updateData.languagesSpoken = JSON.stringify(dto.languagesSpoken);
+    }
+    if (dto.certifications !== undefined) {
+      updateData.certifications = JSON.stringify(dto.certifications);
+    }
+    if (dto.workSchedule !== undefined) {
+      updateData.workSchedule = JSON.stringify(dto.workSchedule);
+    }
+    if (dto.highestQualification !== undefined) {
+      updateData.highestQualification = dto.highestQualification;
+    }
+    if (dto.degreeName !== undefined) {
+      updateData.degreeName = dto.degreeName;
+    }
+    if (dto.institution !== undefined) {
+      updateData.institution = dto.institution;
+    }
+    if (dto.graduationYear !== undefined) {
+      updateData.graduationYear = dto.graduationYear;
+    }
+    if (dto.employmentType !== undefined) {
+      updateData.employmentType = dto.employmentType;
+    }
+    if (dto.contractStartDate !== undefined) {
+      updateData.contractStartDate = new Date(dto.contractStartDate);
+    }
+    if (dto.contractEndDate !== undefined) {
+      updateData.contractEndDate = new Date(dto.contractEndDate);
+    }
+    if (dto.hourlyRate !== undefined) {
+      updateData.hourlyRate = dto.hourlyRate;
+    }
+    if (dto.monthlySalary !== undefined) {
+      updateData.monthlySalary = dto.monthlySalary;
+    }
+    if (dto.bio !== undefined) {
+      updateData.bio = dto.bio;
+    }
+    if (dto.teachingPhilosophy !== undefined) {
+      updateData.teachingPhilosophy = dto.teachingPhilosophy;
+    }
+    if (dto.achievements !== undefined) {
+      updateData.achievements = dto.achievements;
+    }
+    if (dto.experience !== undefined) {
+      updateData.experience = dto.experience;
+    }
+    if (dto.resumeUrl !== undefined) {
+      updateData.resumeUrl = dto.resumeUrl;
+    }
+    if (dto.certificatesUrl !== undefined) {
+      updateData.certificatesUrl = dto.certificatesUrl;
+    }
+
+    // Update teacher profile
+    const updatedTeacher = await this.prisma.teacher.update({
+      where: { id: teacherId },
+      data: updateData,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            phone: true,
+            address: true,
+            dateOfBirth: true,
+            gender: true,
+            profilePhoto: true,
+            employeeId: true,
+            employmentStartDate: true,
+            emergencyContactName: true,
+            emergencyContactPhone: true,
+            isActive: true,
+          },
+        },
+        branch: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+
+    // Parse JSON fields for response
+    const profile = {
+      ...updatedTeacher,
+      primarySubjects: updatedTeacher.primarySubjects
+        ? JSON.parse(updatedTeacher.primarySubjects)
+        : [],
+      secondarySubjects: updatedTeacher.secondarySubjects
+        ? JSON.parse(updatedTeacher.secondarySubjects)
+        : [],
+      gradeLevels: updatedTeacher.gradeLevels ? JSON.parse(updatedTeacher.gradeLevels) : [],
+      languagesSpoken: updatedTeacher.languagesSpoken
+        ? JSON.parse(updatedTeacher.languagesSpoken)
+        : [],
+      certifications: updatedTeacher.certifications
+        ? JSON.parse(updatedTeacher.certifications)
+        : [],
+      workSchedule: updatedTeacher.workSchedule ? JSON.parse(updatedTeacher.workSchedule) : null,
+      documentsMetadata: updatedTeacher.documentsMetadata
+        ? JSON.parse(updatedTeacher.documentsMetadata)
+        : null,
+    };
+
+    return {
+      message: 'Teacher profile updated successfully',
+      teacher: profile,
+    };
   }
 }

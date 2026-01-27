@@ -18,6 +18,7 @@ import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateTeacherProfileDto } from './dto/update-teacher-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -181,5 +182,44 @@ export class UsersController {
   })
   setPassword(@Body() resetPasswordDto: ResetPasswordDto, @CurrentUser() user: CurrentUserData) {
     return this.usersService.setPassword(user.userId, resetPasswordDto.newPassword);
+  }
+
+  @Get('teachers/:id/profile')
+  @Roles(Role.SUPER_ADMIN, Role.BRANCH_ADMIN, Role.TEACHER)
+  @ApiOperation({
+    summary: 'Get teacher profile',
+    description:
+      'Teachers can view their own profile. Admins can view teacher profiles in their scope.',
+  })
+  getTeacherProfile(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserData) {
+    return this.usersService.getTeacherProfile(
+      id,
+      user.organizationId,
+      user.userId,
+      user.role as Role,
+      user.branchId ?? undefined,
+    );
+  }
+
+  @Patch('teachers/:id/profile')
+  @Roles(Role.SUPER_ADMIN, Role.BRANCH_ADMIN, Role.TEACHER)
+  @ApiOperation({
+    summary: 'Update teacher profile',
+    description:
+      'Teachers can update their own profile. Admins can update teacher profiles in their scope.',
+  })
+  updateTeacherProfile(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateTeacherProfileDto: UpdateTeacherProfileDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.usersService.updateTeacherProfile(
+      id,
+      updateTeacherProfileDto,
+      user.organizationId,
+      user.userId,
+      user.role as Role,
+      user.branchId ?? undefined,
+    );
   }
 }

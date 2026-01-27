@@ -282,10 +282,41 @@ model Teacher {
   branchId Int
   branch   Branch @relation(fields: [branchId], references: [id])
 
-  teacherCode    String // Teacher code (unique per organization)
-  specialization String?
-  qualifications String?
-  experience     Int? // years of experience
+  teacherCode String // Teacher code (unique per organization)
+
+  // Subject Specialization
+  primarySubjects   String? // JSON array: ["Mathematics", "Physics"]
+  secondarySubjects String? // JSON array: ["Chemistry"]
+  gradeLevels       String? // JSON array: ["Primary 5", "Primary 6", "Secondary 1"]
+  languagesSpoken   String? // JSON array: ["English", "Mandarin", "Malay"]
+
+  // Professional Qualifications
+  highestQualification String? // e.g., "Bachelor's Degree", "Master's Degree", "PhD"
+  degreeName           String? // e.g., "Bachelor of Science in Mathematics"
+  institution          String? // e.g., "National University of Singapore"
+  graduationYear       Int? // e.g., 2015
+  certifications       String? // JSON array: [{"name": "MOE Teaching Cert", "year": 2016}]
+
+  // Employment Details
+  employmentType    String? // "Full-time", "Part-time", "Contract", "Freelance"
+  contractStartDate DateTime?
+  contractEndDate   DateTime?
+  workSchedule      String? // JSON object: {"monday": ["09:00-12:00", "14:00-17:00"], ...}
+  hourlyRate        Float? // For part-time/freelance teachers
+  monthlySalary     Float? // For full-time teachers
+
+  // Professional Profile
+  bio                String? // Brief biography
+  teachingPhilosophy String? // Teaching approach and philosophy
+  achievements       String? // Notable achievements
+  specialization     String? // Legacy field - keep for backward compatibility
+  qualifications     String? // Legacy field - keep for backward compatibility
+  experience         Int? // years of experience
+
+  // Document References
+  resumeUrl         String? // URL to resume/CV
+  certificatesUrl   String? // URL to certificates folder
+  documentsMetadata String? // JSON metadata about uploaded documents
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
