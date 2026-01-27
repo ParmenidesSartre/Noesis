@@ -116,7 +116,21 @@ model User {
   name     String
   role     Role
   phone    String?
+  address  String?
   isActive Boolean @default(true)
+
+  // Personal Information
+  dateOfBirth  DateTime?
+  gender       String? // Male, Female, Other
+  profilePhoto String? // URL to profile photo
+
+  // Employee Information (for SUPER_ADMIN, BRANCH_ADMIN, TEACHER)
+  employeeId          String?
+  employmentStartDate DateTime?
+
+  // Emergency Contact
+  emergencyContactName  String?
+  emergencyContactPhone String?
 
   // Multi-tenant: Each user belongs to an organization
   organizationId Int
@@ -187,6 +201,7 @@ model Student {
   studentCode    String // Student code (unique per organization)
   dateOfBirth    DateTime?
   grade          String?
+  schoolName     String? // Current school name
   status         StudentStatus @default(ACTIVE)
   enrollmentDate DateTime      @default(now())
 
@@ -195,6 +210,10 @@ model Student {
   allergies        String?
   specialNeeds     String?
   emergencyContact String?
+
+  // Enrollment tracking
+  previousTuitionCenter String?
+  referralSource        String? // How they heard about us
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -217,9 +236,11 @@ model Parent {
   userId Int  @unique
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  occupation       String?
-  company          String?
-  emergencyContact String?
+  occupation             String?
+  company                String?
+  officePhone            String?
+  preferredContactMethod String? // Email, SMS, Phone, WhatsApp
+  emergencyContact       String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
