@@ -4,9 +4,9 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
-import { cleanupDatabase } from './helpers/test-utils';
+import { AppModule } from '../../src/app.module';
+import { PrismaService } from '../../src/prisma/prisma.service';
+import { cleanupDatabase } from '../helpers/test-utils';
 
 describe('Teacher Profile Management (e2e)', () => {
   let app: INestApplication;
