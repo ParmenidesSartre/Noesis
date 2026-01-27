@@ -526,8 +526,6 @@ export class UsersService {
             preferredContactMethod: dto.parent.preferredContactMethod,
           },
         });
-
-        finalParentUser = createdParentUser;
       } else {
         // Parent exists, use existing parent record
         parentRecord = parentUser.parent!;
