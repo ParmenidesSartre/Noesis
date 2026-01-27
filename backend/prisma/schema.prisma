@@ -27,6 +27,12 @@ enum StudentStatus {
   SUSPENDED
 }
 
+enum ParentLinkRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -147,9 +153,10 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations - Optional based on role
-  teacher Teacher?
-  student Student?
-  parent  Parent?
+  teacher              Teacher?
+  student              Student?
+  parent               Parent?
+  approvedLinkRequests ParentLinkRequest[]
 
   @@unique([email, organizationId]) // Email unique per organization
   @@index([organizationId])
@@ -219,10 +226,11 @@ model Student {
   updatedAt DateTime @updatedAt
 
   // Relations
-  parents     ParentStudent[]
-  enrollments Enrollment[]
-  attendances Attendance[]
-  grades      Grade[]
+  parents      ParentStudent[]
+  linkRequests ParentLinkRequest[]
+  enrollments  Enrollment[]
+  attendances  Attendance[]
+  grades       Grade[]
 
   @@unique([studentCode, organizationId]) // Code unique per organization
   @@index([organizationId])
@@ -246,7 +254,8 @@ model Parent {
   updatedAt DateTime @updatedAt
 
   // Relations
-  students ParentStudent[]
+  students     ParentStudent[]
+  linkRequests ParentLinkRequest[]
 
   @@map("parents")
 }
@@ -268,6 +277,40 @@ model ParentStudent {
   @@index([parentId])
   @@index([studentId])
   @@map("parent_student")
+}
+
+model ParentLinkRequest {
+  id       Int    @id @default(autoincrement())
+  parentId Int
+  parent   Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Verification information provided by parent
+  studentCode        String
+  studentName        String
+  studentDateOfBirth DateTime
+
+  // Relationship information
+  relationship String // e.g., "Father", "Mother", "Guardian"
+
+  // Request status and tracking
+  status          ParentLinkRequestStatus @default(PENDING)
+  rejectionReason String? // Reason if rejected
+  approvedBy      Int? // User ID of admin who approved
+  approvedByUser  User?                   @relation(fields: [approvedBy], references: [id], onDelete: SetNull)
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([parentId, studentId]) // One active request per parent-student pair
+  @@index([parentId])
+  @@index([studentId])
+  @@index([status])
+  @@map("parent_link_requests")
 }
 
 model Teacher {
