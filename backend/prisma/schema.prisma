@@ -33,6 +33,29 @@ enum ParentLinkRequestStatus {
   REJECTED
 }
 
+enum DocumentType {
+  RESUME // Resume/CV
+  CERTIFICATE // Teaching certificates, qualifications
+  ID_DOCUMENT // Identity card, passport
+  POLICE_CLEARANCE // Background check document
+  CONTRACT // Employment contract
+  DEGREE // Degree certificate
+  OTHER // Other documents
+}
+
+enum LeaveType {
+  SICK
+  ANNUAL
+  EMERGENCY
+  UNPAID
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -157,6 +180,8 @@ model User {
   student              Student?
   parent               Parent?
   approvedLinkRequests ParentLinkRequest[]
+  uploadedDocuments    Document[]
+  reviewedLeaveRequests LeaveRequest[]
 
   @@unique([email, organizationId]) // Email unique per organization
   @@index([organizationId])
@@ -365,13 +390,53 @@ model Teacher {
   updatedAt DateTime @updatedAt
 
   // Relations
-  classes     Class[]
-  attendances Attendance[]
+  classes       Class[]
+  attendances   Attendance[]
+  documents     Document[]
+  leaveRequests LeaveRequest[]
 
   @@unique([teacherCode, organizationId]) // Code unique per organization
   @@index([organizationId])
   @@index([branchId])
   @@map("teachers")
+}
+
+model Document {
+  id Int @id @default(autoincrement())
+
+  // Teacher relation
+  teacherId Int
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  // Document metadata
+  documentType DocumentType
+  description  String?
+  fileName     String // Original file name
+  storedName   String // Unique stored file name (with timestamp)
+  fileUrl      String // Full URL or path to file
+  fileSize     Int // Size in bytes
+  mimeType     String // e.g., "application/pdf", "image/jpeg"
+
+  // Expiry tracking
+  expiryDate    DateTime? // When the document expires
+  expiryAlerted Boolean   @default(false) // Whether expiry alert was sent
+
+  // Upload information
+  uploadedBy   Int? // User ID who uploaded
+  uploadedUser User? @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+  uploadedAt   DateTime @default(now())
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([documentType])
+  @@index([expiryDate])
+  @@index([uploadedAt])
+  @@map("documents")
 }
 
 model Course {
@@ -632,4 +697,46 @@ model Payment {
   @@index([invoiceId])
   @@index([paymentDate])
   @@map("payments")
+}
+
+model LeaveRequest {
+  id Int @id @default(autoincrement())
+
+  // Teacher relation
+  teacherId Int
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  // Leave details
+  leaveType LeaveType
+  startDate DateTime
+  endDate   DateTime
+  totalDays Int // Calculated number of leave days
+
+  // Request information
+  reason               String // Reason for leave
+  supportingDocuments  String? // Additional documentation info
+  affectsClasses       Boolean @default(false) // Whether this leave affects scheduled classes
+  affectedClassDetails String? // JSON: details of affected classes if any
+
+  // Status and approval
+  status        LeaveStatus @default(PENDING)
+  adminComments String? // Comments from admin when approving/rejecting
+
+  // Review tracking
+  reviewedByUserId Int? // User ID of admin who reviewed
+  reviewedBy       User? @relation(fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewedAt       DateTime? // When the leave was approved/rejected
+
+  // Submission tracking (for admin submitting on behalf of teacher)
+  submittedBy Int? // If null, teacher submitted themselves
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([status])
+  @@index([leaveType])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("leave_requests")
 }

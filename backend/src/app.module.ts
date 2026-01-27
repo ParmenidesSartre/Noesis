@@ -11,6 +11,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ParentsModule } from './parents/parents.module';
 import { BranchesModule } from './branches/branches.module';
+import { DocumentsModule } from './documents/documents.module';
+import { LeaveModule } from './leave/leave.module';
 import { validateEnv } from './config/env.validation';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -53,6 +55,8 @@ import { RolesGuard } from './auth/guards/roles.guard';
     UsersModule,
     ParentsModule,
     BranchesModule,
+    DocumentsModule,
+    LeaveModule,
   ],
   controllers: [AppController],
   providers: [

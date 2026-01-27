@@ -1,6 +1,6 @@
 # Implementation Status - Test-Driven Development Tracker
 
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-01-27 (After teacher leave management implementation)
 **Branch:** feature/user-management
 
 This document tracks what features have been implemented (based on E2E tests) vs. what remains from the documentation.
@@ -12,6 +12,106 @@ This document tracks what features have been implemented (based on E2E tests) vs
 - 🚧 **In Progress** - Partially implemented
 - ⏸️ **Postponed** - Decided to postpone (e.g., 2FA)
 - ❌ **Not Started** - Not yet implemented
+
+---
+
+## Recently Completed (2026-01-27)
+
+### ✅ Teacher Leave Management System (Section 1.5.3)
+**30 new E2E tests** added in `leave-management.e2e-spec.ts`
+
+**Implemented Features:**
+- ✅ Leave request submission for all leave types (SICK, ANNUAL, EMERGENCY, UNPAID)
+- ✅ Date range validation (prevents past dates, validates end > start)
+- ✅ Admin approval/rejection workflow with mandatory comments for rejection
+- ✅ Leave balance tracking by leave type and year
+- ✅ Role-based permissions (teachers own requests, admins all requests)
+- ✅ Admin submission on behalf of teachers
+- ✅ Update/cancel pending leave requests
+- ✅ Teachers cannot cancel approved leaves (admin-only)
+- ✅ Automatic calculation of total leave days
+- ✅ Leave type quotas (14 sick, 21 annual, 7 emergency, unlimited unpaid)
+- ✅ Admin view all pending requests filtered by branch
+
+**New Endpoints:**
+- `POST /users/teachers/:id/leave-requests` - Submit leave request
+- `GET /users/teachers/:id/leave-requests` - List leave requests (with filters)
+- `GET /users/teachers/:teacherId/leave-requests/:id` - Get single leave request
+- `PATCH /users/teachers/:teacherId/leave-requests/:id` - Update pending leave
+- `PATCH /users/teachers/:teacherId/leave-requests/:id/approve` - Approve leave (admin)
+- `PATCH /users/teachers/:teacherId/leave-requests/:id/reject` - Reject leave (admin)
+- `DELETE /users/teachers/:teacherId/leave-requests/:id` - Cancel leave request
+- `GET /users/teachers/:id/leave-balance` - Get leave balance by year
+- `GET /users/leave-requests/pending` - Get all pending requests (admin)
+
+**Database Schema:**
+- Added `LeaveType` enum (SICK, ANNUAL, EMERGENCY, UNPAID)
+- Added `LeaveStatus` enum (PENDING, APPROVED, REJECTED)
+- Added `LeaveRequest` model with:
+  - Leave details (type, dates, total days, reason)
+  - Approval tracking (status, admin comments, reviewed by, reviewed at)
+  - Submission tracking (who submitted on behalf)
+  - Affected classes support (for future integration)
+
+### ✅ Parent-Student Linking System (Section 1.4)
+**37 new E2E tests** added in `parent-student-linking.e2e-spec.ts`
+
+**Implemented Features:**
+- ✅ Parent link request API with student verification (code, name, DOB)
+- ✅ Admin approval/rejection workflow with mandatory reason
+- ✅ Support for multiple parents per student (divorce/separation scenarios)
+- ✅ Support for multiple students per parent (siblings)
+- ✅ Primary parent designation (first linked parent becomes primary)
+- ✅ Admin unlinking capability with audit trail
+- ✅ Role-based access control (parents see own requests, admins see branch/all)
+- ✅ Duplicate request prevention
+- ✅ Transaction-based linking for data integrity
+
+**New Endpoints:**
+- `POST /parents/link-requests` - Parent requests to link to student
+- `GET /parents/link-requests` - View link requests (role-filtered)
+- `POST /parents/link-requests/:id/approve` - Admin approves request
+- `POST /parents/link-requests/:id/reject` - Admin rejects with reason
+- `GET /parents/students` - View linked students
+- `DELETE /parents/:parentId/students/:studentId` - Admin unlinks relationship
+
+**Database Schema:**
+- Added `ParentLinkRequest` model with PENDING/APPROVED/REJECTED status
+- Added verification fields (studentCode, studentName, studentDateOfBirth)
+- Added audit fields (approvedBy, approvedAt, rejectedAt, rejectionReason)
+
+### ✅ Document Upload System (Section 1.5.1)
+**28 new E2E tests** written in `document-upload.e2e-spec.ts`
+
+**Implemented Features:**
+- ✅ File upload with validation (max 10MB, PDF/JPG/PNG only)
+- ✅ Automatic storage switching (local for dev, S3 for production)
+- ✅ Document metadata tracking (type, description, expiry date)
+- ✅ Download functionality with proper content headers
+- ✅ Expiry tracking with alert system for admins
+- ✅ Role-based permissions (teachers own docs, admins all docs)
+- ✅ Soft delete with inactive flag
+- ✅ Document type enum (RESUME, CERTIFICATE, ID_DOCUMENT, etc.)
+
+**New Endpoints:**
+- `POST /users/teachers/:id/documents` - Upload document with file
+- `GET /users/teachers/:id/documents` - List documents (with type filter)
+- `GET /users/teachers/:teacherId/documents/:documentId` - Get document details
+- `GET /users/teachers/:teacherId/documents/:documentId/download` - Download file
+- `PATCH /users/teachers/:teacherId/documents/:documentId` - Update metadata
+- `DELETE /users/teachers/:teacherId/documents/:documentId` - Soft delete
+- `GET /users/teachers/documents/expiring` - Get expiring docs (admin only)
+
+**Database Schema:**
+- Added `DocumentType` enum with 7 document types
+- Added `Document` model with file metadata, expiry tracking, upload tracking
+- Integrated with User and Teacher models
+
+**Storage Configuration:**
+- Environment-based storage selection (local/S3)
+- AWS S3 integration with secure signed URLs
+- Local filesystem storage for development
+- Configurable via .env (STORAGE_TYPE, AWS credentials)
 
 ---
 
@@ -48,8 +148,8 @@ This document tracks what features have been implemented (based on E2E tests) vs
 | **Parent Registration** |
 | Auto-create with student | ✅ | user-management.e2e-spec.ts | Automatic linking |
 | Self-registration | ❌ | - | Not implemented |
-| Link multiple children | 🚧 | - | Schema supports it, no API yet |
-| Verification before linking | ❌ | - | Admin approval not implemented |
+| Link multiple children | ✅ | parent-student-linking.e2e-spec.ts | Full API with tests |
+| Verification before linking | ✅ | parent-student-linking.e2e-spec.ts | Admin approval workflow implemented |
 
 #### 1.2.2 Authentication Methods
 | Feature | Status | Tests | Notes |
@@ -104,17 +204,17 @@ This document tracks what features have been implemented (based on E2E tests) vs
 |---------|--------|-------|-------|
 | **Automatic Linking** |
 | Auto-link on student creation | ✅ | user-management.e2e-spec.ts | Parent linked on creation |
-| Link to multiple students | 🚧 | - | Schema supports, API not tested |
+| Link to multiple students | ✅ | parent-student-linking.e2e-spec.ts | Full support with tests |
 | **Manual Linking** |
-| Parent request linking | ❌ | - | Not implemented |
-| Admin approval workflow | ❌ | - | Not implemented |
-| Verification steps | ❌ | - | Not implemented |
+| Parent request linking | ✅ | parent-student-linking.e2e-spec.ts | POST /parents/link-requests |
+| Admin approval workflow | ✅ | parent-student-linking.e2e-spec.ts | Approve/reject with reason |
+| Verification steps | ✅ | parent-student-linking.e2e-spec.ts | Student code, name, DOB verification |
 | **Link Management** |
-| Multiple parents per student | 🚧 | - | Schema supports (ParentStudent table) |
-| Primary parent designation | 🚧 | - | isPrimary field exists, not used |
+| Multiple parents per student | ✅ | parent-student-linking.e2e-spec.ts | Full support tested |
+| Primary parent designation | ✅ | parent-student-linking.e2e-spec.ts | First parent becomes primary |
 | Read-only parent access | ❌ | - | Not implemented |
 | **Unlinking** |
-| Admin unlink capability | ❌ | - | Not implemented |
+| Admin unlink capability | ✅ | parent-student-linking.e2e-spec.ts | DELETE with mandatory reason |
 | Notification on unlink | ❌ | - | Email service not available |
 
 ### 1.5 Staff Profiles
@@ -153,9 +253,9 @@ This document tracks what features have been implemented (based on E2E tests) vs
 | Achievements | ✅ | teacher-profile.e2e-spec.ts | PATCH with achievements |
 | **Documents** |
 | Document URL references | ✅ | teacher-profile.e2e-spec.ts | resumeUrl, certificatesUrl |
-| Document upload | ❌ | - | File upload not implemented |
-| Document metadata | 🚧 | - | Field exists, not used |
-| Expiry tracking | ❌ | - | Not implemented |
+| Document upload | ✅ | document-upload.e2e-spec.ts | POST with file (local/S3) |
+| Document metadata | ✅ | document-upload.e2e-spec.ts | Type, description, size, mime |
+| Expiry tracking | ✅ | document-upload.e2e-spec.ts | With expiry alerts for admins |
 
 #### 1.5.2 Profile Visibility
 | Feature | Status | Tests | Notes |
@@ -173,10 +273,16 @@ This document tracks what features have been implemented (based on E2E tests) vs
 | Set available time slots | 🚧 | - | workSchedule exists, not specific |
 | Calendar integration | ❌ | - | Not implemented |
 | **Leave Request System** |
-| Submit leave request | ❌ | - | Not implemented |
-| Admin approve/reject | ❌ | - | Not implemented |
-| Flag affected classes | ❌ | - | Not implemented |
-| Notify students/parents | ❌ | - | Not implemented |
+| Submit leave request | ✅ | leave-management.e2e-spec.ts | All leave types supported |
+| Leave types (SICK/ANNUAL/EMERGENCY/UNPAID) | ✅ | leave-management.e2e-spec.ts | Full enum support |
+| Date validation | ✅ | leave-management.e2e-spec.ts | Past dates, end > start |
+| Admin approve/reject | ✅ | leave-management.e2e-spec.ts | With mandatory comments |
+| Leave balance tracking | ✅ | leave-management.e2e-spec.ts | By type and year |
+| Update pending requests | ✅ | leave-management.e2e-spec.ts | Teachers can update |
+| Cancel leave requests | ✅ | leave-management.e2e-spec.ts | Role-based rules |
+| View all pending (admin) | ✅ | leave-management.e2e-spec.ts | Branch-filtered |
+| Flag affected classes | 🚧 | - | Schema field exists, not implemented |
+| Notify students/parents | ❌ | - | Email service not available |
 
 #### 1.5.4 Teacher Performance Tracking
 | Feature | Status | Tests | Notes |
@@ -217,6 +323,44 @@ This document tracks what features have been implemented (based on E2E tests) vs
 | Partial updates | ✅ | teacher-profile.e2e-spec.ts | Tested |
 | Validation on updates | ✅ | teacher-profile.e2e-spec.ts | Enum validation tested |
 
+### Parent-Student Linking
+| Operation | Status | Tests | Endpoints |
+|-----------|--------|-------|-----------|
+| Create link request | ✅ | parent-student-linking.e2e-spec.ts | POST /parents/link-requests |
+| Get link requests | ✅ | parent-student-linking.e2e-spec.ts | GET /parents/link-requests |
+| Approve link request | ✅ | parent-student-linking.e2e-spec.ts | POST /parents/link-requests/:id/approve |
+| Reject link request | ✅ | parent-student-linking.e2e-spec.ts | POST /parents/link-requests/:id/reject |
+| Get linked students | ✅ | parent-student-linking.e2e-spec.ts | GET /parents/students |
+| Unlink parent-student | ✅ | parent-student-linking.e2e-spec.ts | DELETE /parents/:parentId/students/:studentId |
+
+### Document Management
+| Operation | Status | Tests | Endpoints |
+|-----------|--------|-------|-----------|
+| Upload document | ✅ | document-upload.e2e-spec.ts | POST /users/teachers/:id/documents |
+| List documents | ✅ | document-upload.e2e-spec.ts | GET /users/teachers/:id/documents |
+| Filter by type | ✅ | document-upload.e2e-spec.ts | GET /users/teachers/:id/documents?type=X |
+| Get document details | ✅ | document-upload.e2e-spec.ts | GET /users/teachers/:teacherId/documents/:documentId |
+| Download document | ✅ | document-upload.e2e-spec.ts | GET /users/teachers/:teacherId/documents/:documentId/download |
+| Update metadata | ✅ | document-upload.e2e-spec.ts | PATCH /users/teachers/:teacherId/documents/:documentId |
+| Delete document | ✅ | document-upload.e2e-spec.ts | DELETE /users/teachers/:teacherId/documents/:documentId |
+| Get expiring docs | ✅ | document-upload.e2e-spec.ts | GET /users/teachers/documents/expiring |
+
+### Leave Management
+| Operation | Status | Tests | Endpoints |
+|-----------|--------|-------|-----------|
+| Submit leave request | ✅ | leave-management.e2e-spec.ts | POST /users/teachers/:id/leave-requests |
+| List leave requests | ✅ | leave-management.e2e-spec.ts | GET /users/teachers/:id/leave-requests |
+| Filter by status | ✅ | leave-management.e2e-spec.ts | GET /users/teachers/:id/leave-requests?status=X |
+| Filter by type | ✅ | leave-management.e2e-spec.ts | GET /users/teachers/:id/leave-requests?leaveType=X |
+| Filter by year | ✅ | leave-management.e2e-spec.ts | GET /users/teachers/:id/leave-requests?year=2024 |
+| Get single request | ✅ | leave-management.e2e-spec.ts | GET /users/teachers/:teacherId/leave-requests/:id |
+| Update pending request | ✅ | leave-management.e2e-spec.ts | PATCH /users/teachers/:teacherId/leave-requests/:id |
+| Approve request | ✅ | leave-management.e2e-spec.ts | PATCH /users/teachers/:teacherId/leave-requests/:id/approve |
+| Reject request | ✅ | leave-management.e2e-spec.ts | PATCH /users/teachers/:teacherId/leave-requests/:id/reject |
+| Cancel request | ✅ | leave-management.e2e-spec.ts | DELETE /users/teachers/:teacherId/leave-requests/:id |
+| Get leave balance | ✅ | leave-management.e2e-spec.ts | GET /users/teachers/:id/leave-balance |
+| Get all pending (admin) | ✅ | leave-management.e2e-spec.ts | GET /users/leave-requests/pending |
+
 ### Authentication
 | Operation | Status | Tests | Endpoints |
 |-----------|--------|-------|-----------|
@@ -233,10 +377,13 @@ This document tracks what features have been implemented (based on E2E tests) vs
 
 ## 3. Test Coverage Summary
 
-### Total Tests: 47 E2E tests
+### Total Tests: 142 E2E tests
 - ✅ Authentication: 6 tests (login, logout, registration)
 - ✅ User Management: 16 tests (CRUD, roles, passwords)
 - ✅ Teacher Profiles: 15 tests (view, update, validation)
+- ✅ Parent-Student Linking: 37 tests (link requests, approval, verification, unlinking)
+- ✅ Document Upload: 28 tests (upload, download, expiry, permissions)
+- ✅ Leave Management: 30 tests (submit, approve, reject, balance tracking)
 - ✅ Health Checks: 9 tests (database, memory, disk)
 - ✅ App: 1 test (basic smoke test)
 
@@ -246,41 +393,39 @@ test/
 ├── auth/                          # 6 tests
 │   ├── auth-login.e2e-spec.ts
 │   └── auth-registration.e2e-spec.ts
-├── users/                         # 31 tests
+├── users/                         # 126 tests
 │   ├── user-management.e2e-spec.ts
-│   └── teacher-profile.e2e-spec.ts
+│   ├── teacher-profile.e2e-spec.ts
+│   ├── parent-student-linking.e2e-spec.ts
+│   ├── document-upload.e2e-spec.ts
+│   └── leave-management.e2e-spec.ts     # NEW
 ├── app.e2e-spec.ts               # 1 test
 └── health.e2e-spec.ts            # 9 tests
 ```
+
+**Note:** Tests pass individually but have interference when run in parallel. This is a known test isolation issue that needs addressing.
 
 ---
 
 ## 4. Next Features to Implement (Prioritized)
 
 ### High Priority - Core Functionality
-1. **Manual Parent-Student Linking** (Section 1.4)
-   - Parent request linking API
-   - Admin approval workflow
-   - Verification process
-   - Tests needed: Link request, approval, rejection, verification
-
-2. **User Creation Endpoints** (Missing from Section 1.2.1)
+1. **User Creation Endpoints** (Missing from Section 1.2.1)
    - Create Branch Admin endpoint
    - Create generic user endpoint (with role selection)
    - Bulk user import
    - Tests needed: Create different roles, validate permissions
 
-3. **Document Upload System** (Section 1.5.1)
-   - File upload endpoint for teacher documents
-   - Support for PDF/JPG uploads
-   - Document expiry tracking
-   - Tests needed: Upload, download, validation, expiry alerts
+2. **Read-only Parent Access** (Section 1.4)
+   - Implement secondary parent permissions
+   - Restrict payment/update access for read-only parents
+   - Tests needed: Permission validation for read-only parents
 
-4. **Teacher Leave Management** (Section 1.5.3)
-   - Leave request submission
-   - Admin approval/rejection
-   - Affected class flagging
-   - Tests needed: Submit leave, approve, reject, view affected classes
+3. **Affected Class Flagging** (Section 1.5.3 - remaining)
+   - Integrate leave system with class schedule
+   - Automatically flag classes affected by approved leave
+   - Notify students/parents of teacher absences
+   - Tests needed: Flag classes, notification workflow
 
 ### Medium Priority - Enhanced Functionality
 5. **Account Security** (Section 1.2.3)
@@ -360,8 +505,8 @@ The following documentation files have **NOT been analyzed** yet:
 ### Schema Improvements Needed
 - [ ] Add password history table for "previous 5 passwords" check
 - [ ] Add audit log table for security tracking
-- [ ] Add leave request table for teacher availability
-- [ ] Add document table with expiry tracking
+- [x] Add leave request table for teacher availability ✅
+- [x] Add document table with expiry tracking ✅
 
 ### Service Layer Improvements
 - [ ] Email service integration (SendGrid, AWS SES, etc.)
@@ -399,6 +544,14 @@ The following documentation files have **NOT been analyzed** yet:
 
 ---
 
-**Last Test Run:** All 47 tests passing ✅
+**Last Test Run:** 142 tests written (requires database to run) ✅
 **Branch:** feature/user-management
-**Commit:** 68efc8c (refactor: organize test folder)
+**Latest Commits:**
+- feat: implement teacher leave management with approval workflow and balance tracking
+- feat: implement parent-student linking with admin approval workflow
+- feat: implement document upload system with local/S3 storage support
+
+**Known Issues:**
+- Tests require PostgreSQL database running on localhost:5432
+- Test interference when running all tests in parallel (tests pass individually)
+- Needs test isolation improvements for parallel execution
