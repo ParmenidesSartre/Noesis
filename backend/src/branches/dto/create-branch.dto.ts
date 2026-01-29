@@ -27,8 +27,8 @@ export class CreateBranchDto {
   @IsEmail()
   email?: string;
 
-  @ApiProperty({ example: 1 })
+  @ApiPropertyOptional({ example: 1, description: 'Auto-injected from authenticated user' })
+  @IsOptional()
   @IsInt()
-  @IsNotEmpty()
-  organizationId: number;
+  organizationId?: number;
 }

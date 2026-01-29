@@ -30,105 +30,43 @@ export interface UpdateBranchRequest {
   isActive?: boolean;
 }
 
-// Mock data for testing
-const mockBranches: Branch[] = [
-  {
-    id: 1,
-    name: 'Main Campus',
-    code: 'MC001',
-    address: '123 Education Street, City Center, Country',
-    phone: '+1234567890',
-    email: 'main@noesis.edu',
-    isActive: true,
-    organizationId: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    name: 'North Branch',
-    code: 'NB002',
-    address: '456 Learning Avenue, North District, Country',
-    phone: '+1234567891',
-    email: 'north@noesis.edu',
-    isActive: true,
-    organizationId: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    name: 'South Branch',
-    code: 'SB003',
-    address: '789 Knowledge Boulevard, South District, Country',
-    phone: '+1234567892',
-    email: 'south@noesis.edu',
-    isActive: false,
-    organizationId: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
 export const branchesApi = {
   /**
-   * Get all branches (MOCKED)
+   * Get all branches
    */
   async getAll(): Promise<Branch[]> {
-    // Mock delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return mockBranches;
+    const response = await apiClient.get<Branch[]>('/branches');
+    return response.data;
   },
 
   /**
-   * Get branch by ID (MOCKED)
+   * Get branch by ID
    */
   async getById(id: number): Promise<Branch> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const branch = mockBranches.find(b => b.id === id);
-    if (!branch) throw new Error('Branch not found');
-    return branch;
+    const response = await apiClient.get<Branch>(`/branches/${id}`);
+    return response.data;
   },
 
   /**
-   * Create a new branch (MOCKED)
+   * Create a new branch
    */
   async create(data: CreateBranchRequest): Promise<Branch> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const newBranch: Branch = {
-      id: mockBranches.length + 1,
-      ...data,
-      isActive: true,
-      organizationId: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    mockBranches.push(newBranch);
-    return newBranch;
+    const response = await apiClient.post<Branch>('/branches', data);
+    return response.data;
   },
 
   /**
-   * Update branch (MOCKED)
+   * Update branch
    */
   async update(id: number, data: UpdateBranchRequest): Promise<Branch> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const index = mockBranches.findIndex(b => b.id === id);
-    if (index === -1) throw new Error('Branch not found');
-    mockBranches[index] = {
-      ...mockBranches[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    return mockBranches[index];
+    const response = await apiClient.patch<Branch>(`/branches/${id}`, data);
+    return response.data;
   },
 
   /**
-   * Delete branch (MOCKED)
+   * Delete branch
    */
   async delete(id: number): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const index = mockBranches.findIndex(b => b.id === id);
-    if (index === -1) throw new Error('Branch not found');
-    mockBranches.splice(index, 1);
+    await apiClient.delete(`/branches/${id}`);
   },
 };
