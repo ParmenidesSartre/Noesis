@@ -51,7 +51,7 @@ export interface Class {
   startDate: string;
   endDate: string;
   totalWeeks?: number;
-  holidayBreaks?: any[];
+  holidayBreaks?: Array<{ startDate: string; endDate: string; name?: string }>;
   schedule: ClassScheduleItem[];
   scheduleNotes?: string;
   maxCapacity: number;
@@ -69,7 +69,7 @@ export interface Class {
   status: ClassStatus;
   statusReason?: string;
   syllabus?: string;
-  materials?: any[];
+  materials?: Array<{ name: string; required?: boolean }>;
   digitalResources?: string;
   classAnnouncements?: string;
   isActive: boolean;
@@ -122,7 +122,7 @@ export interface CreateClassRequest {
   startDate: string;
   endDate: string;
   totalWeeks?: number;
-  holidayBreaks?: any[];
+  holidayBreaks?: Array<{ startDate: string; endDate: string; name?: string }>;
   schedule: ClassScheduleItem[];
   scheduleNotes?: string;
   maxCapacity: number;
@@ -138,7 +138,7 @@ export interface CreateClassRequest {
   autoEnrollFromWaitlist?: boolean;
   status?: ClassStatus;
   syllabus?: string;
-  materials?: any[];
+  materials?: Array<{ name: string; required?: boolean }>;
   digitalResources?: string;
   classAnnouncements?: string;
 }

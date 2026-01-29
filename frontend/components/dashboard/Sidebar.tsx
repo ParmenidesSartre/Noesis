@@ -84,11 +84,19 @@ export function Sidebar({ userName, userRole, userInitials }: SidebarProps) {
               <Calendar size={18} />
               Classes
             </Link>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-500 hover:bg-blue-50 hover:text-primary transition-colors">
+            <button
+              disabled
+              title="Coming Soon"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 cursor-not-allowed"
+            >
               <Calendar size={18} />
               Attendance
             </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-500 hover:bg-blue-50 hover:text-primary transition-colors">
+            <button
+              disabled
+              title="Coming Soon"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 cursor-not-allowed"
+            >
               <DollarSign size={18} />
               Payments
             </button>
@@ -100,11 +108,19 @@ export function Sidebar({ userName, userRole, userInitials }: SidebarProps) {
             Administration
           </p>
           <div className="space-y-1">
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-500 hover:bg-blue-50 hover:text-primary transition-colors">
+            <button
+              disabled
+              title="Coming Soon"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 cursor-not-allowed"
+            >
               <Settings size={18} />
               Settings
             </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-500 hover:bg-blue-50 hover:text-primary transition-colors">
+            <button
+              disabled
+              title="Coming Soon"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 cursor-not-allowed"
+            >
               <Shield size={18} />
               System Logs
             </button>

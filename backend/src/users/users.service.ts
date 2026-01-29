@@ -12,11 +12,14 @@ import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateTeacherProfileDto } from './dto/update-teacher-profile.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { LoggerService } from '../common/logger/logger.service';
 import * as bcrypt from 'bcrypt';
 import { Role, Prisma } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new LoggerService('UsersService');
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
@@ -458,7 +461,10 @@ export class UsersService {
         });
       } catch (error) {
         // Log error but don't fail the user creation
-        console.error('Failed to send credentials email:', error);
+        this.logger.error(
+          `Failed to send teacher credentials email: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error instanceof Error ? error.stack : undefined,
+        );
       }
     }
 
@@ -655,7 +661,10 @@ export class UsersService {
         });
       } catch (error) {
         // Log error but don't fail the user creation
-        console.error('Failed to send credentials email:', error);
+        this.logger.error(
+          `Failed to send student credentials email: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error instanceof Error ? error.stack : undefined,
+        );
       }
     }
 

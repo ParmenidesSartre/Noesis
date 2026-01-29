@@ -10,6 +10,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+import { LoggerService } from '../common/logger/logger.service';
 
 const unlinkAsync = promisify(fs.unlink);
 const mkdirAsync = promisify(fs.mkdir);
@@ -26,6 +27,7 @@ export class StorageService {
   private readonly localStoragePath: string;
   private readonly s3Bucket: string;
   private readonly s3Region: string;
+  private readonly logger = new LoggerService('StorageService');
 
   constructor(private readonly configService: ConfigService) {
     this.storageType = this.configService.get<string>('STORAGE_TYPE', 'local') as 'local' | 's3';
@@ -187,9 +189,9 @@ export class StorageService {
       });
 
       await this.s3Client.send(command);
-    } catch (error) {
+    } catch {
       // Log error but don't throw - file might already be deleted
-      console.error(`Failed to delete file from S3: ${error.message}`);
+      this.logger.warn('Failed to delete file from S3 - file may already be deleted');
     }
   }
 
@@ -200,9 +202,9 @@ export class StorageService {
       if (fs.existsSync(fullPath)) {
         await unlinkAsync(fullPath);
       }
-    } catch (error) {
+    } catch {
       // Log error but don't throw - file might already be deleted
-      console.error(`Failed to delete local file: ${error.message}`);
+      this.logger.warn('Failed to delete local file - file may already be deleted');
     }
   }
 

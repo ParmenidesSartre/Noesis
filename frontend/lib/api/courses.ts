@@ -71,7 +71,7 @@ export interface Course {
   materialFee?: number;
   registrationFee?: number;
   trialSessionFee?: number;
-  textbooks?: any[];
+  textbooks?: Array<{ title: string; isbn?: string; required?: boolean }>;
   additionalMaterials?: string;
   digitalResources?: string;
   isActive: boolean;
@@ -132,7 +132,7 @@ export interface CreateCourseRequest {
   materialFee?: number;
   registrationFee?: number;
   trialSessionFee?: number;
-  textbooks?: any[];
+  textbooks?: Array<{ title: string; isbn?: string; required?: boolean }>;
   additionalMaterials?: string;
   digitalResources?: string;
   isActive: boolean;

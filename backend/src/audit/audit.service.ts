@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { LoggerService } from '../common/logger/logger.service';
 
 export enum AuditEventType {
   // Authentication events
@@ -54,6 +55,8 @@ export interface CreateAuditLogDto {
 
 @Injectable()
 export class AuditService {
+  private readonly logger = new LoggerService('AuditService');
+
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -77,9 +80,10 @@ export class AuditService {
       });
     } catch (error) {
       // Audit logging should never break the application
-      // Log to console instead
-      console.error('Failed to create audit log:', error);
-      console.error('Audit log data:', dto);
+      this.logger.error(
+        `Failed to create audit log: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 
@@ -299,7 +303,7 @@ export class AuditService {
       },
     });
 
-    console.log(`Deleted ${result.count} audit logs older than ${daysToKeep} days`);
+    this.logger.log(`Deleted ${result.count} audit logs older than ${daysToKeep} days`);
     return result;
   }
 }
