@@ -9,15 +9,15 @@
 jest.setTimeout(30000);
 
 // Global test setup
-beforeAll(async () => {
+beforeAll(() => {
   // Add any global setup here
-  console.log('🧪 Starting E2E test suite...');
+  console.warn('Starting E2E test suite...');
 });
 
 // Global test teardown
-afterAll(async () => {
+afterAll(() => {
   // Add any global cleanup here
-  console.log('✅ E2E test suite completed');
+  console.warn('E2E test suite completed');
 });
 
 // Set test environment variables

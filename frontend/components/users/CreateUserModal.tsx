@@ -123,19 +123,14 @@ export function CreateUserModal({ onClose, onSuccess }: CreateUserModalProps) {
         const cleanedForm = removeEmptyFields(teacherForm) as CreateTeacherRequest;
         const result = await usersApi.createTeacher(cleanedForm);
         setTemporaryPassword(result.temporaryPassword);
-        alert(`Teacher created successfully!\n\nEmail: ${result.user.email}\nTemporary Password: ${result.temporaryPassword}\n\nPlease share these credentials securely.`);
+        alert(`Teacher created successfully!\n\nAn email with login credentials has been sent to:\n${result.user.email}\n\nThe teacher will receive their username and temporary password via email.`);
         onSuccess();
       } else if (selectedRole === Role.STUDENT) {
         const cleanedForm = removeEmptyFields(studentForm) as CreateStudentRequest;
         const result = await usersApi.createStudent(cleanedForm);
         let message = 'Student and parent created successfully!\n\n';
-        if (result.temporaryPasswords.student) {
-          message += `Student Email: ${result.student.email}\nStudent Password: ${result.temporaryPasswords.student}\n\n`;
-        }
-        if (result.temporaryPasswords.parent) {
-          message += `Parent Email: ${result.parent.email}\nParent Password: ${result.temporaryPasswords.parent}\n\n`;
-        }
-        message += 'Please share these credentials securely.';
+        message += `Login credentials have been sent via email to the parent:\n${result.parent.email}\n\n`;
+        message += 'The parent will receive login credentials for both the student and parent accounts.';
         alert(message);
         onSuccess();
       } else {

@@ -11,12 +11,16 @@ import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateTeacherProfileDto } from './dto/update-teacher-profile.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import * as bcrypt from 'bcrypt';
 import { Role, Prisma } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   /**
    * Create a new user
@@ -359,7 +363,14 @@ export class UsersService {
   /**
    * Create a teacher with additional employee information
    */
-  async createTeacher(dto: CreateTeacherDto, organizationId: number, _currentUserRole: Role) {
+  async createTeacher(
+    dto: CreateTeacherDto,
+    organizationId: number,
+    _currentUserRole: Role,
+    senderId?: number,
+    senderEmail?: string,
+    ipAddress?: string,
+  ) {
     // Verify branch exists and belongs to organization
     const branch = await this.prisma.branch.findFirst({
       where: {
@@ -432,12 +443,32 @@ export class UsersService {
     // Return user without password
     const { password: _, ...userWithoutPassword } = result.user;
 
+    // Send credentials email if sender information is provided
+    if (senderId && senderEmail) {
+      try {
+        await this.emailService.sendCredentialsEmail({
+          recipientEmail: result.user.email,
+          recipientName: result.user.name,
+          role: 'Teacher',
+          password: temporaryPassword,
+          organizationId,
+          senderId,
+          senderEmail,
+          ipAddress,
+        });
+      } catch (error) {
+        // Log error but don't fail the user creation
+        console.error('Failed to send credentials email:', error);
+      }
+    }
+
     return {
       user: userWithoutPassword,
       teacher: result.teacher,
       temporaryPassword: result.temporaryPassword,
-      message:
-        'Teacher created successfully. Please send the temporary password to the teacher via email.',
+      message: senderId
+        ? 'Teacher created successfully. Credentials email sent to the teacher.'
+        : 'Teacher created successfully. Please send the temporary password to the teacher via email.',
     };
   }
 
@@ -445,7 +476,14 @@ export class UsersService {
    * Create a student with parent linking
    * Creates parent if doesn't exist, or links to existing parent
    */
-  async createStudent(dto: CreateStudentDto, organizationId: number, _currentUserRole: Role) {
+  async createStudent(
+    dto: CreateStudentDto,
+    organizationId: number,
+    _currentUserRole: Role,
+    senderId?: number,
+    senderEmail?: string,
+    ipAddress?: string,
+  ) {
     // Verify branch exists and belongs to organization
     const branch = await this.prisma.branch.findFirst({
       where: {
@@ -587,6 +625,40 @@ export class UsersService {
       unknown
     >;
 
+    // Send credentials email to parent if sender information is provided
+    if (senderId && senderEmail) {
+      try {
+        // Send parent credentials if new parent
+        if (isNewParent) {
+          await this.emailService.sendCredentialsEmail({
+            recipientEmail: result.parentUser.email,
+            recipientName: result.parentUser.name,
+            role: 'Parent',
+            password: parentTempPassword,
+            organizationId,
+            senderId,
+            senderEmail,
+            ipAddress,
+          });
+        }
+
+        // Send student credentials (parent will receive this)
+        await this.emailService.sendCredentialsEmail({
+          recipientEmail: dto.parent.email, // Send to parent's email
+          recipientName: result.studentUser.name,
+          role: 'Student',
+          password: studentTempPassword,
+          organizationId,
+          senderId,
+          senderEmail,
+          ipAddress,
+        });
+      } catch (error) {
+        // Log error but don't fail the user creation
+        console.error('Failed to send credentials email:', error);
+      }
+    }
+
     return {
       student: {
         user: studentWithoutPassword,
@@ -598,8 +670,9 @@ export class UsersService {
         temporaryPassword: isNewParent ? parentTempPassword : undefined,
         isNewParent,
       },
-      message:
-        'Student and parent created successfully. Please send the login credentials via email to the parent.',
+      message: senderId
+        ? 'Student and parent created successfully. Credentials emails sent to the parent.'
+        : 'Student and parent created successfully. Please send the login credentials via email to the parent.',
     };
   }
 

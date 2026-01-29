@@ -132,12 +132,7 @@ export class AuditService {
   /**
    * Log logout
    */
-  async logLogout(
-    userEmail: string,
-    userId?: number,
-    organizationId?: number,
-    ipAddress?: string,
-  ) {
+  async logLogout(userEmail: string, userId?: number, organizationId?: number, ipAddress?: string) {
     return this.log({
       eventType: AuditEventType.LOGOUT,
       severity: AuditSeverity.INFO,
@@ -172,11 +167,7 @@ export class AuditService {
   /**
    * Log registration failure
    */
-  async logRegistrationFailure(
-    email: string,
-    reason: string,
-    ipAddress?: string,
-  ) {
+  async logRegistrationFailure(email: string, reason: string, ipAddress?: string) {
     return this.log({
       eventType: AuditEventType.REGISTRATION_FAILURE,
       severity: AuditSeverity.WARNING,
@@ -253,12 +244,7 @@ export class AuditService {
   async getStatistics(organizationId?: number) {
     const where = organizationId ? { organizationId } : {};
 
-    const [
-      total,
-      byEventType,
-      bySeverity,
-      recentCritical,
-    ] = await Promise.all([
+    const [total, byEventType, bySeverity, recentCritical] = await Promise.all([
       this.prisma.auditLog.count({ where }),
       this.prisma.auditLog.groupBy({
         by: ['eventType'],
@@ -279,14 +265,20 @@ export class AuditService {
 
     return {
       total,
-      byEventType: byEventType.reduce((acc, item) => {
-        acc[item.eventType] = item._count;
-        return acc;
-      }, {} as Record<string, number>),
-      bySeverity: bySeverity.reduce((acc, item) => {
-        acc[item.severity] = item._count;
-        return acc;
-      }, {} as Record<string, number>),
+      byEventType: byEventType.reduce(
+        (acc, item) => {
+          acc[item.eventType] = item._count;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+      bySeverity: bySeverity.reduce(
+        (acc, item) => {
+          acc[item.severity] = item._count;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
       recentCritical,
     };
   }

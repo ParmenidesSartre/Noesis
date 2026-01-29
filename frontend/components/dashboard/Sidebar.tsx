@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GraduationCap, LayoutDashboard, Users, Calendar, DollarSign, Settings, Shield, Building2 } from 'lucide-react';
+import { GraduationCap, LayoutDashboard, Users, Calendar, DollarSign, Settings, Shield, Building2, BookOpen } from 'lucide-react';
 
 interface SidebarProps {
   userName: string;
@@ -61,6 +61,28 @@ export function Sidebar({ userName, userRole, userInitials }: SidebarProps) {
             >
               <Building2 size={18} />
               Branches
+            </Link>
+            <Link
+              href="/courses"
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                pathname === '/courses'
+                  ? 'bg-primary text-white shadow-lg shadow-blue-200'
+                  : 'text-slate-500 hover:bg-blue-50 hover:text-primary'
+              }`}
+            >
+              <BookOpen size={18} />
+              Courses
+            </Link>
+            <Link
+              href="/classes"
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                pathname === '/classes'
+                  ? 'bg-primary text-white shadow-lg shadow-blue-200'
+                  : 'text-slate-500 hover:bg-blue-50 hover:text-primary'
+              }`}
+            >
+              <Calendar size={18} />
+              Classes
             </Link>
             <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-500 hover:bg-blue-50 hover:text-primary transition-colors">
               <Calendar size={18} />

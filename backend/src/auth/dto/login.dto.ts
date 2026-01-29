@@ -22,7 +22,8 @@ export class LoginDto {
 
   @ApiProperty({
     example: 'abc-tuition',
-    description: 'Organization slug to establish tenant context (optional - will be auto-detected from email if not provided)',
+    description:
+      'Organization slug to establish tenant context (optional - will be auto-detected from email if not provided)',
     required: false,
   })
   @IsOptional()

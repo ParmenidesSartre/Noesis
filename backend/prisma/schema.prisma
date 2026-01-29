@@ -86,6 +86,91 @@ enum PlanStatus {
   SUSPENDED // Account suspended for non-payment
 }
 
+enum CourseCategory {
+  UPSR // Primary School Achievement Test (Year 6)
+  PT3 // Form 3 Assessment
+  SPM // Malaysian Certificate of Education (Form 5)
+  STPM // Malaysian Higher School Certificate (Form 6)
+  MATRICULATION // Pre-University Matriculation
+  IGCSE // International GCSE
+  O_LEVEL // O-Level
+  A_LEVEL // A-Level
+  ACADEMIC // General Academic subjects
+  ENRICHMENT // Art, Music, Coding, etc.
+  LANGUAGE // Language courses
+  SPECIAL_PROGRAM // Gifted, Remedial, Competition Prep
+}
+
+enum CourseLevel {
+  STANDARD_1 // Primary Year 1
+  STANDARD_2 // Primary Year 2
+  STANDARD_3 // Primary Year 3
+  STANDARD_4 // Primary Year 4
+  STANDARD_5 // Primary Year 5
+  STANDARD_6 // Primary Year 6 (UPSR)
+  FORM_1 // Secondary Year 1
+  FORM_2 // Secondary Year 2
+  FORM_3 // Secondary Year 3 (PT3)
+  FORM_4 // Secondary Year 4
+  FORM_5 // Secondary Year 5 (SPM)
+  FORM_6_LOWER // STPM Lower 6
+  FORM_6_UPPER // STPM Upper 6
+  MIXED // Mixed levels
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  MIXED
+}
+
+enum SessionDuration {
+  THIRTY_MIN // 30 minutes
+  FORTY_FIVE_MIN // 45 minutes
+  SIXTY_MIN // 60 minutes (1 hour)
+  NINETY_MIN // 90 minutes (1.5 hours)
+  ONE_TWENTY_MIN // 120 minutes (2 hours)
+}
+
+enum ClassType {
+  REGULAR_GROUP // Regular group class
+  SMALL_GROUP // Small group (3-8 students)
+  ONE_ON_ONE // Individual/private tutoring
+  ONLINE // Online class
+  HYBRID // In-person + online
+  INTENSIVE // Intensive/crash course
+  WORKSHOP // Workshop/seminar
+}
+
+enum ClassStatus {
+  DRAFT // Not visible to students yet
+  OPEN_FOR_ENROLLMENT // Accepting enrollments
+  FULL // Capacity reached
+  IN_PROGRESS // Term has started
+  COMPLETED // Term ended
+  CANCELLED // Class cancelled
+  ON_HOLD // Temporarily suspended
+}
+
+enum EnrollmentStatus {
+  ACTIVE // Currently enrolled
+  COMPLETED // Completed the class
+  WITHDRAWN // Withdrawn from class
+  TRANSFERRED // Transferred to another class
+  ON_LEAVE // Temporary leave
+}
+
+enum WaitlistStatus {
+  WAITING // On waitlist
+  OFFERED // Spot offered, awaiting response
+  ACCEPTED // Accepted the offer
+  DECLINED // Declined the offer
+  EXPIRED // Offer expired
+  ENROLLED // Successfully enrolled
+  CANCELLED // Waitlist request cancelled
+}
+
 // Models
 
 // Organization - Each tuition centre is a separate tenant
@@ -176,11 +261,11 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations - Optional based on role
-  teacher              Teacher?
-  student              Student?
-  parent               Parent?
-  approvedLinkRequests ParentLinkRequest[]
-  uploadedDocuments    Document[]
+  teacher               Teacher?
+  student               Student?
+  parent                Parent?
+  approvedLinkRequests  ParentLinkRequest[]
+  uploadedDocuments     Document[]
   reviewedLeaveRequests LeaveRequest[]
 
   @@unique([email, organizationId]) // Email unique per organization
@@ -207,11 +292,12 @@ model Branch {
   updatedAt DateTime @updatedAt
 
   // Relations
-  users    User[] // Branch admins and other users assigned to this branch
-  students Student[]
-  teachers Teacher[]
-  classes  Class[]
-  rooms    Room[]
+  users          User[] // Branch admins and other users assigned to this branch
+  students       Student[]
+  teachers       Teacher[]
+  classes        Class[]
+  rooms          Room[]
+  courseBranches CourseBranch[] // Courses offered at this branch
 
   @@unique([code, organizationId]) // Code unique per organization
   @@index([organizationId])
@@ -254,6 +340,7 @@ model Student {
   parents      ParentStudent[]
   linkRequests ParentLinkRequest[]
   enrollments  Enrollment[]
+  waitlist     Waitlist[]
   attendances  Attendance[]
   grades       Grade[]
 
@@ -390,10 +477,11 @@ model Teacher {
   updatedAt DateTime @updatedAt
 
   // Relations
-  classes       Class[]
-  attendances   Attendance[]
-  documents     Document[]
-  leaveRequests LeaveRequest[]
+  classes          Class[]
+  coTeacherClasses Class[]        @relation("CoTeacherClasses")
+  attendances      Attendance[]
+  documents        Document[]
+  leaveRequests    LeaveRequest[]
 
   @@unique([teacherCode, organizationId]) // Code unique per organization
   @@index([organizationId])
@@ -423,7 +511,7 @@ model Document {
 
   // Upload information
   uploadedBy   Int? // User ID who uploaded
-  uploadedUser User? @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+  uploadedUser User?    @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
   uploadedAt   DateTime @default(now())
 
   // Status
@@ -439,29 +527,79 @@ model Document {
   @@map("documents")
 }
 
+// Course - Organization-level course catalog (can be template or actual course)
 model Course {
-  id          Int     @id @default(autoincrement())
-  name        String
-  code        String // Course code (unique per organization)
-  description String?
-  level       String? // e.g., "Primary 1", "Secondary 3"
-  subject     String // e.g., "Mathematics", "Science"
-
-  // Multi-tenant: Each course belongs to an organization
+  id             Int          @id @default(autoincrement())
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  isActive  Boolean  @default(true)
+  // Basic Information
+  name        String // e.g., "Matematik SPM", "English UPSR"
+  code        String // e.g., "MATH-SPM", "ENG-UPSR"
+  description String? @db.Text
+  objectives  String? @db.Text // Learning outcomes
+
+  // Categorization
+  category        CourseCategory
+  difficultyLevel DifficultyLevel
+
+  // Grade Levels - Store as JSON array for multiple levels
+  // e.g., ["FORM_4", "FORM_5"] or ["STANDARD_4", "STANDARD_5", "STANDARD_6"]
+  gradeLevels Json // Array of CourseLevel enums
+
+  // Age range (optional)
+  minAge Int?
+  maxAge Int?
+
+  // Prerequisites
+  prerequisites String? @db.Text // Description of prerequisites
+
+  // Duration and Scheduling
+  sessionDuration SessionDuration
+  totalWeeks      Int? // Total duration in weeks (null for ongoing)
+  isOngoing       Boolean         @default(true) // True for continuous courses
+
+  // Default Capacity
+  maxClassSize Int @default(30) // Default maximum students per class
+  minClassSize Int @default(5) // Minimum students to run class
+
+  // Pricing (in Malaysian Ringgit - RM)
+  // These are default prices, can be customized per branch
+  baseFeePerSession Decimal? @db.Decimal(10, 2)
+  baseFeePerMonth   Decimal? @db.Decimal(10, 2)
+  baseFeePerTerm    Decimal? @db.Decimal(10, 2)
+  materialFee       Decimal? @db.Decimal(10, 2)
+  registrationFee   Decimal? @db.Decimal(10, 2)
+  trialSessionFee   Decimal? @db.Decimal(10, 2)
+
+  // Materials
+  textbooks           Json? // Array of textbook objects
+  additionalMaterials String? @db.Text
+  digitalResources    String? @db.Text // URLs to resources
+
+  // Availability
+  isActive         Boolean @default(true)
+  enrollmentOpen   Boolean @default(true)
+  waitlistEnabled  Boolean @default(true)
+  publicVisibility Boolean @default(true) // Show on website/parent portal
+
+  // Template flag
+  isTemplate Boolean @default(false) // True if this is a template for branches to adopt
+
+  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  classes Class[]
-  fees    Fee[]
+  courseBranches CourseBranch[] // Which branches offer this course
+  classes        Class[]
+  fees           Fee[]
 
-  @@unique([code, organizationId]) // Code unique per organization
+  @@unique([organizationId, code])
   @@index([organizationId])
-  @@index([subject])
+  @@index([category])
+  @@index([isActive])
+  @@index([isTemplate])
   @@map("courses")
 }
 
@@ -504,25 +642,73 @@ model Class {
   courseId Int
   course   Course @relation(fields: [courseId], references: [id])
 
+  // Primary teacher (required)
   teacherId Int
   teacher   Teacher @relation(fields: [teacherId], references: [id])
+
+  // Optional co-teacher/assistant
+  coTeacherId Int?
+  coTeacher   Teacher? @relation("CoTeacherClasses", fields: [coTeacherId], references: [id])
 
   roomId Int?
   room   Room? @relation(fields: [roomId], references: [id])
 
-  name      String
-  classCode String // Class code (unique per organization)
-  schedule  String // JSON string of schedule
-  startDate DateTime
-  endDate   DateTime
-  capacity  Int
+  // Basic Information
+  name      String // e.g., "Mathematics - Primary 5 A"
+  classCode String // Auto-generated: MATH-P5-A-2026
 
+  // Class Configuration
+  classType  ClassType
+  classLevel String? // Grade level (e.g., "Primary 5", "Form 3")
+
+  // Term/Semester
+  termName      String? // e.g., "Term 1 2026", "Semester 1"
+  academicYear  Int? // e.g., 2026
+  startDate     DateTime
+  endDate       DateTime
+  totalWeeks    Int? // Number of teaching weeks
+  holidayBreaks Json? // Array of holiday break periods
+
+  // Schedule (recurring pattern)
+  schedule      Json // Weekly schedule pattern: [{day: "MONDAY", startTime: "14:00", endTime: "16:00"}]
+  scheduleNotes String? // Special notes about schedule
+
+  // Capacity Management
+  maxCapacity       Int @default(30) // Maximum students
+  minCapacity       Int @default(5) // Minimum students to run
+  currentEnrollment Int @default(0) // Current number of enrolled students
+
+  // Fee Structure (per student, can override course defaults)
+  feePerSession Decimal? @db.Decimal(10, 2)
+  feePerMonth   Decimal? @db.Decimal(10, 2)
+  feePerTerm    Decimal? @db.Decimal(10, 2)
+  materialFee   Decimal? @db.Decimal(10, 2)
+
+  // Class Settings
+  allowLateEnrollment      Boolean   @default(true)
+  lateEnrollmentCutoffDate DateTime?
+  allowMidTermWithdrawal   Boolean   @default(true)
+  waitlistEnabled          Boolean   @default(true)
+  autoEnrollFromWaitlist   Boolean   @default(false)
+
+  // Status
+  status       ClassStatus @default(DRAFT)
+  statusReason String? // Reason for status (e.g., cancellation reason)
+
+  // Materials and Resources
+  syllabus           String? // Curriculum/syllabus details
+  materials          Json? // Required materials
+  digitalResources   String? // Links to digital resources
+  classAnnouncements String? // Class announcements
+
+  // Tracking
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
   enrollments Enrollment[]
+  waitlist    Waitlist[]
   attendances Attendance[]
   assignments Assignment[]
   grades      Grade[]
@@ -532,6 +718,9 @@ model Class {
   @@index([branchId])
   @@index([courseId])
   @@index([teacherId])
+  @@index([coTeacherId])
+  @@index([status])
+  @@index([startDate])
   @@map("classes")
 }
 
@@ -543,8 +732,25 @@ model Enrollment {
   classId Int
   class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
 
-  enrollmentDate DateTime @default(now())
-  status         String   @default("active") // active, completed, withdrawn
+  enrollmentDate DateTime         @default(now())
+  status         EnrollmentStatus @default(ACTIVE)
+
+  // Withdrawal/Transfer tracking
+  withdrawalDate       DateTime?
+  withdrawalReason     String? // Reason for withdrawal
+  transferredToClassId Int? // If transferred to another class
+
+  // Leave tracking
+  leaveStartDate DateTime?
+  leaveEndDate   DateTime?
+  leaveReason    String?
+
+  // Fee tracking
+  agreedFeePerMonth Decimal? @db.Decimal(10, 2) // Fee agreed at enrollment
+  discountApplied   Decimal? @db.Decimal(10, 2) // Any discount given
+
+  // Notes
+  enrollmentNotes String? // Special notes about this enrollment
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -555,7 +761,52 @@ model Enrollment {
   @@unique([studentId, classId])
   @@index([studentId])
   @@index([classId])
+  @@index([status])
   @@map("enrollments")
+}
+
+model Waitlist {
+  id        Int     @id @default(autoincrement())
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  classId Int
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  // Waitlist tracking
+  position    Int // Position in waitlist (1 = first in line)
+  requestDate DateTime       @default(now())
+  status      WaitlistStatus @default(WAITING)
+
+  // Offer tracking
+  offerSentDate       DateTime?
+  offerExpiryDate     DateTime?
+  offerResponseDate   DateTime?
+  offerResponseReason String? // Reason for accepting/declining
+
+  // Enrollment tracking (if accepted and enrolled)
+  enrolledDate DateTime?
+
+  // Priority flags
+  isPriority    Boolean @default(false) // Priority waitlist (e.g., returning students)
+  priorityNotes String? // Reason for priority
+
+  // Notification tracking
+  lastNotifiedDate  DateTime?
+  notificationCount Int       @default(0)
+
+  // Notes
+  notes String? // Admin notes about this waitlist entry
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, classId]) // One waitlist entry per student per class
+  @@index([studentId])
+  @@index([classId])
+  @@index([status])
+  @@index([position])
+  @@map("waitlist")
 }
 
 model Attendance {
@@ -724,7 +975,7 @@ model LeaveRequest {
 
   // Review tracking
   reviewedByUserId Int? // User ID of admin who reviewed
-  reviewedBy       User? @relation(fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewedBy       User?     @relation(fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   reviewedAt       DateTime? // When the leave was approved/rejected
 
   // Submission tracking (for admin submitting on behalf of teacher)
@@ -760,8 +1011,8 @@ model AuditLog {
   organizationId Int?
 
   // Device/session context
-  ipAddress  String?
-  userAgent  String?
+  ipAddress   String?
+  userAgent   String?
   fingerprint String? // Browser fingerprint hash
 
   @@index([eventType])
@@ -771,4 +1022,40 @@ model AuditLog {
   @@index([timestamp])
   @@index([userEmail])
   @@map("audit_logs")
+}
+
+// CourseBranch - Junction table for Course-Branch relationship with customization
+model CourseBranch {
+  id       Int    @id @default(autoincrement())
+  courseId Int
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  branchId Int
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  // Branch-specific customization
+  isOffered Boolean @default(true) // Whether this branch offers this course
+
+  // Custom pricing for this branch (overrides course default if set)
+  customFeePerSession   Decimal? @db.Decimal(10, 2)
+  customFeePerMonth     Decimal? @db.Decimal(10, 2)
+  customFeePerTerm      Decimal? @db.Decimal(10, 2)
+  customMaterialFee     Decimal? @db.Decimal(10, 2)
+  customRegistrationFee Decimal? @db.Decimal(10, 2)
+
+  // Custom capacity for this branch (overrides course default if set)
+  customMaxClassSize Int?
+  customMinClassSize Int?
+
+  // Branch-specific notes
+  branchNotes String? @db.Text
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, branchId])
+  @@index([branchId])
+  @@index([courseId])
+  @@index([isOffered])
+  @@map("course_branches")
 }

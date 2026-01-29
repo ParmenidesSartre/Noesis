@@ -64,23 +64,16 @@ export class LeaveService {
     }
 
     // Permission check: Teachers can only submit for themselves, admins can submit for anyone
-    if (
-      requestingUserRole === Role.TEACHER &&
-      teacher.userId !== requestingUserId
-    ) {
-      throw new ForbiddenException(
-        'Teachers can only submit leave requests for themselves',
-      );
+    if (requestingUserRole === Role.TEACHER && teacher.userId !== requestingUserId) {
+      throw new ForbiddenException('Teachers can only submit leave requests for themselves');
     }
 
     // Calculate total days (inclusive)
-    const totalDays = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-    ) + 1;
+    const totalDays =
+      Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     // Track who submitted (for admin submissions on behalf of teacher)
-    const submittedBy =
-      teacher.userId !== requestingUserId ? requestingUserId : null;
+    const submittedBy = teacher.userId !== requestingUserId ? requestingUserId : null;
 
     // Create leave request
     const leaveRequest = await this.prisma.leaveRequest.create({
@@ -132,17 +125,20 @@ export class LeaveService {
     }
 
     // Permission check: Teachers can only view their own, admins can view any
-    if (
-      requestingUserRole === Role.TEACHER &&
-      teacher.userId !== requestingUserId
-    ) {
-      throw new ForbiddenException(
-        'Teachers can only view their own leave requests',
-      );
+    if (requestingUserRole === Role.TEACHER && teacher.userId !== requestingUserId) {
+      throw new ForbiddenException('Teachers can only view their own leave requests');
     }
 
     // Build where clause
-    const where: any = { teacherId };
+    const where: {
+      teacherId: number;
+      status?: LeaveStatus;
+      leaveType?: LeaveType;
+      startDate?: {
+        gte: Date;
+        lte: Date;
+      };
+    } = { teacherId };
 
     if (filters?.status) {
       where.status = filters.status;
@@ -206,13 +202,8 @@ export class LeaveService {
     }
 
     // Permission check
-    if (
-      requestingUserRole === Role.TEACHER &&
-      leaveRequest.teacher.userId !== requestingUserId
-    ) {
-      throw new ForbiddenException(
-        'You do not have permission to view this leave request',
-      );
+    if (requestingUserRole === Role.TEACHER && leaveRequest.teacher.userId !== requestingUserId) {
+      throw new ForbiddenException('You do not have permission to view this leave request');
     }
 
     return leaveRequest;
@@ -247,20 +238,13 @@ export class LeaveService {
     }
 
     // Permission check
-    if (
-      requestingUserRole === Role.TEACHER &&
-      leaveRequest.teacher.userId !== requestingUserId
-    ) {
-      throw new ForbiddenException(
-        'You do not have permission to update this leave request',
-      );
+    if (requestingUserRole === Role.TEACHER && leaveRequest.teacher.userId !== requestingUserId) {
+      throw new ForbiddenException('You do not have permission to update this leave request');
     }
 
     // Can only update pending requests
     if (leaveRequest.status !== LeaveStatus.PENDING) {
-      throw new BadRequestException(
-        'Can only update leave requests with PENDING status',
-      );
+      throw new BadRequestException('Can only update leave requests with PENDING status');
     }
 
     // Validate dates if provided
@@ -281,9 +265,7 @@ export class LeaveService {
     }
 
     // Recalculate total days
-    totalDays = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-    ) + 1;
+    totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     const updated = await this.prisma.leaveRequest.update({
       where: { id: leaveRequestId },
@@ -292,8 +274,7 @@ export class LeaveService {
         endDate,
         totalDays,
         reason: dto.reason ?? leaveRequest.reason,
-        supportingDocuments:
-          dto.supportingDocuments ?? leaveRequest.supportingDocuments,
+        supportingDocuments: dto.supportingDocuments ?? leaveRequest.supportingDocuments,
       },
       include: {
         teacher: {
@@ -343,9 +324,7 @@ export class LeaveService {
 
     // Can only approve pending requests
     if (leaveRequest.status !== LeaveStatus.PENDING) {
-      throw new BadRequestException(
-        'Can only approve leave requests with PENDING status',
-      );
+      throw new BadRequestException('Can only approve leave requests with PENDING status');
     }
 
     // Approve the leave request
@@ -405,9 +384,7 @@ export class LeaveService {
 
     // Can only reject pending requests
     if (leaveRequest.status !== LeaveStatus.PENDING) {
-      throw new BadRequestException(
-        'Can only reject leave requests with PENDING status',
-      );
+      throw new BadRequestException('Can only reject leave requests with PENDING status');
     }
 
     // Rejection requires a comment
@@ -468,9 +445,7 @@ export class LeaveService {
     // Admins can cancel any request
     if (requestingUserRole === Role.TEACHER) {
       if (leaveRequest.teacher.userId !== requestingUserId) {
-        throw new ForbiddenException(
-          'You do not have permission to cancel this leave request',
-        );
+        throw new ForbiddenException('You do not have permission to cancel this leave request');
       }
 
       // Teachers can't cancel approved leaves
@@ -509,13 +484,8 @@ export class LeaveService {
     }
 
     // Permission check
-    if (
-      requestingUserRole === Role.TEACHER &&
-      teacher.userId !== requestingUserId
-    ) {
-      throw new ForbiddenException(
-        'Teachers can only view their own leave balance',
-      );
+    if (requestingUserRole === Role.TEACHER && teacher.userId !== requestingUserId) {
+      throw new ForbiddenException('Teachers can only view their own leave balance');
     }
 
     const targetYear = year || new Date().getFullYear();
@@ -567,13 +537,17 @@ export class LeaveService {
   ) {
     // Only admins can view all pending requests
     if (adminRole !== Role.SUPER_ADMIN && adminRole !== Role.BRANCH_ADMIN) {
-      throw new ForbiddenException(
-        'Only admins can view all pending leave requests',
-      );
+      throw new ForbiddenException('Only admins can view all pending leave requests');
     }
 
     // Build where clause
-    const where: any = {
+    const where: {
+      status: LeaveStatus;
+      teacher: {
+        organizationId: number;
+        branchId?: number;
+      };
+    } = {
       status: LeaveStatus.PENDING,
       teacher: {
         organizationId,

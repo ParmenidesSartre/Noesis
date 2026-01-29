@@ -65,7 +65,7 @@ describe('UsersService', () => {
   });
 
   describe('findAll', () => {
-    it('should return an array of users', async () => {
+    it('should return an array of users', () => {
       const mockUsers = [
         {
           id: 1,
@@ -92,7 +92,7 @@ describe('UsersService', () => {
       expect(mockPrismaService.read).toHaveBeenCalled();
     });
 
-    it('should return empty array when no users exist', async () => {
+    it('should return empty array when no users exist', () => {
       mockPrismaService.read.mockImplementation((callback) =>
         Promise.resolve(
           callback({

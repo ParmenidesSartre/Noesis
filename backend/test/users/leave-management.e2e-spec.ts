@@ -381,7 +381,8 @@ describe('Teacher Leave Management (E2E)', () => {
           totalDays: 5,
           reason: 'Vacation',
           status: 'APPROVED',
-          reviewedByUserId: (await prisma.user.findFirst({ where: { role: Role.BRANCH_ADMIN } })).id,
+          reviewedByUserId: (await prisma.user.findFirst({ where: { role: Role.BRANCH_ADMIN } }))
+            .id,
           reviewedAt: new Date(),
         },
       });

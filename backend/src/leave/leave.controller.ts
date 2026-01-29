@@ -16,11 +16,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role, LeaveType, LeaveStatus } from '@prisma/client';
 import { LeaveService } from './leave.service';
-import type {
-  CreateLeaveRequestDto,
-  UpdateLeaveRequestDto,
-  ReviewLeaveDto,
-} from './leave.service';
+import type { CreateLeaveRequestDto, UpdateLeaveRequestDto, ReviewLeaveDto } from './leave.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -38,12 +34,7 @@ export class LeaveController {
     @Body() dto: CreateLeaveRequestDto,
     @Request() req,
   ) {
-    return this.leaveService.createLeaveRequest(
-      teacherId,
-      dto,
-      req.user.userId,
-      req.user.role,
-    );
+    return this.leaveService.createLeaveRequest(teacherId, dto, req.user.userId, req.user.role);
   }
 
   /**
@@ -58,7 +49,7 @@ export class LeaveController {
     @Query('year') year?: string,
     @Request() req?,
   ) {
-    const filters: any = {};
+    const filters: { status?: LeaveStatus; leaveType?: LeaveType; year?: number } = {};
     if (status) filters.status = status;
     if (leaveType) filters.leaveType = leaveType;
     if (year) filters.year = parseInt(year);
@@ -178,12 +169,7 @@ export class LeaveController {
     @Request() req?,
   ) {
     const targetYear = year ? parseInt(year) : undefined;
-    return this.leaveService.getLeaveBalance(
-      teacherId,
-      req.user.userId,
-      req.user.role,
-      targetYear,
-    );
+    return this.leaveService.getLeaveBalance(teacherId, req.user.userId, req.user.role, targetYear);
   }
 
   /**

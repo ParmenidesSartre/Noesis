@@ -9,11 +9,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import * as request from 'supertest';
 
+interface TestModuleMetadata {
+  imports?: unknown[];
+  controllers?: unknown[];
+  providers?: unknown[];
+}
+
 /**
  * Creates a test application instance with all necessary configurations
  */
 export async function createTestApp(
-  module: any,
+  module: TestModuleMetadata,
 ): Promise<{ app: INestApplication; moduleRef: TestingModule }> {
   const moduleRef: TestingModule = await Test.createTestingModule(module).compile();
 
@@ -58,10 +64,14 @@ export async function cleanupDatabase(prisma: PrismaClient): Promise<void> {
   }
 }
 
+interface JwtService {
+  sign(payload: Record<string, unknown>): string;
+}
+
 /**
  * Creates a test JWT token for authentication
  */
-export function createTestToken(payload: any, jwtService: any): string {
+export function createTestToken(payload: Record<string, unknown>, jwtService: JwtService): string {
   return jwtService.sign(payload);
 }
 
@@ -78,7 +88,7 @@ export function authenticatedRequest(
 /**
  * Generates test user data
  */
-export function generateTestUser(overrides: any = {}) {
+export function generateTestUser(overrides: Record<string, unknown> = {}) {
   return {
     email: `test-${Date.now()}@example.com`,
     password: 'Test123!@#',
@@ -91,7 +101,7 @@ export function generateTestUser(overrides: any = {}) {
 /**
  * Generates test student data
  */
-export function generateTestStudent(overrides: any = {}) {
+export function generateTestStudent(overrides: Record<string, unknown> = {}) {
   return {
     dateOfBirth: new Date('2010-01-01'),
     enrollmentDate: new Date(),

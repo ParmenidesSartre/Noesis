@@ -38,7 +38,11 @@ export class BranchesController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.BRANCH_ADMIN)
-  update(@Param('id') id: string, @Body() updateBranchDto: UpdateBranchDto, @CurrentUser() user: CurrentUserData) {
+  update(
+    @Param('id') id: string,
+    @Body() updateBranchDto: UpdateBranchDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
     return this.branchesService.update(+id, updateBranchDto, user.organizationId);
   }
 

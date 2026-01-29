@@ -9,7 +9,9 @@ import {
   UseGuards,
   Query,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -124,11 +126,19 @@ export class UsersController {
     summary: 'Create a new teacher',
     description: 'Creates a teacher with auto-generated credentials. Returns temporary password.',
   })
-  createTeacher(@Body() createTeacherDto: CreateTeacherDto, @CurrentUser() user: CurrentUserData) {
+  createTeacher(
+    @Body() createTeacherDto: CreateTeacherDto,
+    @CurrentUser() user: CurrentUserData,
+    @Req() req: Request,
+  ) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
     return this.usersService.createTeacher(
       createTeacherDto,
       user.organizationId,
       user.role as Role,
+      user.userId,
+      user.email,
+      ipAddress,
     );
   }
 
@@ -139,11 +149,19 @@ export class UsersController {
     description:
       'Creates a student and links to parent. Creates parent if does not exist. Returns temporary passwords.',
   })
-  createStudent(@Body() createStudentDto: CreateStudentDto, @CurrentUser() user: CurrentUserData) {
+  createStudent(
+    @Body() createStudentDto: CreateStudentDto,
+    @CurrentUser() user: CurrentUserData,
+    @Req() req: Request,
+  ) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
     return this.usersService.createStudent(
       createStudentDto,
       user.organizationId,
       user.role as Role,
+      user.userId,
+      user.email,
+      ipAddress,
     );
   }
 

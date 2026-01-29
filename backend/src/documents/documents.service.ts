@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from './storage.service';
 import { UploadDocumentDto } from './dto/upload-document.dto';
@@ -96,7 +91,11 @@ export class DocumentsService {
    * Get all documents for a teacher with optional filtering
    */
   async getTeacherDocuments(teacherId: number, documentType?: DocumentType) {
-    const where: any = {
+    const where: {
+      teacherId: number;
+      isActive: boolean;
+      documentType?: DocumentType;
+    } = {
       teacherId,
       isActive: true,
     };
@@ -172,7 +171,7 @@ export class DocumentsService {
         fileName: document.fileName,
         mimeType: document.mimeType,
       };
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to download document');
     }
   }
@@ -219,7 +218,7 @@ export class DocumentsService {
    * Delete a document (soft delete)
    */
   async deleteDocument(documentId: number) {
-    const document = await this.getDocumentById(documentId);
+    await this.getDocumentById(documentId);
 
     // Soft delete - mark as inactive
     await this.prisma.document.update({

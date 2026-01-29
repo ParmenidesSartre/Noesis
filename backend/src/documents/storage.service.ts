@@ -1,6 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -38,7 +43,7 @@ export class StorageService {
       });
     } else {
       // Ensure local storage directory exists
-      this.ensureLocalStorageDirectory();
+      void this.ensureLocalStorageDirectory();
     }
   }
 
@@ -48,10 +53,7 @@ export class StorageService {
     }
   }
 
-  async uploadFile(
-    file: Express.Multer.File,
-    folder: string = 'documents',
-  ): Promise<UploadResult> {
+  async uploadFile(file: Express.Multer.File, folder: string = 'documents'): Promise<UploadResult> {
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
@@ -89,7 +91,10 @@ export class StorageService {
     }
   }
 
-  private async uploadToLocal(file: Express.Multer.File, storedName: string): Promise<UploadResult> {
+  private async uploadToLocal(
+    file: Express.Multer.File,
+    storedName: string,
+  ): Promise<UploadResult> {
     try {
       const fullPath = path.join(this.localStoragePath, storedName);
       const directory = path.dirname(fullPath);
@@ -131,7 +136,7 @@ export class StorageService {
       });
 
       const response = await this.s3Client.send(command);
-      const stream = response.Body as any;
+      const stream = response.Body as AsyncIterable<Buffer>;
 
       // Convert stream to buffer
       const chunks: Buffer[] = [];
@@ -140,12 +145,12 @@ export class StorageService {
       }
 
       return Buffer.concat(chunks);
-    } catch (error) {
-      throw new BadRequestException(`Failed to retrieve file from S3: ${error.message}`);
+    } catch {
+      throw new BadRequestException('Failed to retrieve file from S3');
     }
   }
 
-  private async getFileFromLocal(storedName: string): Promise<Buffer> {
+  private getFileFromLocal(storedName: string): Buffer {
     try {
       const fullPath = path.join(this.localStoragePath, storedName);
 
@@ -155,7 +160,10 @@ export class StorageService {
 
       return fs.readFileSync(fullPath);
     } catch (error) {
-      throw new BadRequestException(`Failed to retrieve file: ${error.message}`);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to retrieve file');
     }
   }
 
