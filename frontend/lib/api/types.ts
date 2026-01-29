@@ -82,6 +82,7 @@ export interface Teacher {
 export interface LoginRequest {
   email: string;
   password: string;
+  organizationSlug?: string;
 }
 
 export interface LoginResponse {
@@ -91,11 +92,26 @@ export interface LoginResponse {
 
 export interface RegisterRequest {
   organizationName: string;
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
+  organizationEmail: string;
+  organizationPhone?: string;
+  organizationAddress?: string;
+  organizationCountry?: string;
+  adminName: string;
+  adminEmail: string;
+  adminPassword: string;
+}
+
+export interface RegisterResponse {
+  organization: {
+    id: number;
+    name: string;
+    slug: string;
+    email: string;
+    phone?: string;
+    address?: string;
+    country?: string;
+  };
+  adminUser: User;
 }
 
 // Leave Management Types
@@ -169,6 +185,67 @@ export interface Document {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// User Management Types
+export interface CreateUserRequest {
+  email: string;
+  password: string;
+  name: string;
+  role: Role;
+  branchId?: number;
+  phone?: string;
+  address?: string;
+}
+
+export interface UpdateUserRequest {
+  name?: string;
+  phone?: string;
+  address?: string;
+  branchId?: number;
+  isActive?: boolean;
+}
+
+export interface CreateTeacherRequest {
+  email: string;
+  name: string;
+  branchId: number;
+  phone?: string;
+  address?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  employeeId?: string;
+  employmentStartDate?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+}
+
+export interface ParentInfo {
+  email: string;
+  name: string;
+  phone: string;
+  relationship: string;
+  address?: string;
+  occupation?: string;
+  officePhone?: string;
+  preferredContactMethod?: string;
+}
+
+export interface CreateStudentRequest {
+  email?: string;
+  name: string;
+  branchId: number;
+  phone: string;
+  dateOfBirth: string;
+  gender: string;
+  gradeLevel: string;
+  schoolName: string;
+  address?: string;
+  medicalInfo?: string;
+  specialNeeds?: string;
+  previousTuitionCenter?: string;
+  referralSource?: string;
+  parent: ParentInfo;
 }
 
 // API Response Types

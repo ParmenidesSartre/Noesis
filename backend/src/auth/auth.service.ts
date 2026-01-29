@@ -1,6 +1,9 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { REQUEST } from '@nestjs/core';
+import type { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { RegisterTenantDto } from './dto/register-tenant.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
@@ -11,6 +14,8 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly auditService: AuditService,
+    @Inject(REQUEST) private readonly request: Request,
   ) {}
 
   /**
@@ -19,19 +24,28 @@ export class AuthService {
    * Sets up 14-day trial period
    */
   async register(dto: RegisterTenantDto) {
-    // Generate slug if not provided
-    const slug = dto.organizationSlug || this.generateSlug(dto.organizationName);
+    const ipAddress = this.request.ip || this.request.headers['x-forwarded-for'] as string || 'unknown';
 
-    // Check if organization already exists
-    const existingOrg = await this.prisma.organization.findFirst({
-      where: {
-        OR: [{ email: dto.organizationEmail }, { slug }],
-      },
-    });
+    try {
+      // Generate slug if not provided
+      const slug = dto.organizationSlug || this.generateSlug(dto.organizationName);
 
-    if (existingOrg) {
-      throw new ConflictException('Organization already exists with this email or slug');
-    }
+      // Check if organization already exists
+      const existingOrg = await this.prisma.organization.findFirst({
+        where: {
+          OR: [{ email: dto.organizationEmail }, { slug }],
+        },
+      });
+
+      if (existingOrg) {
+        // Log failed registration
+        await this.auditService.logRegistrationFailure(
+          dto.adminEmail,
+          'Organization already exists',
+          ipAddress,
+        );
+        throw new ConflictException('Organization already exists with this email or slug');
+      }
 
     // Hash admin password
     const hashedPassword = await bcrypt.hash(dto.adminPassword, 10);
@@ -71,6 +85,14 @@ export class AuthService {
       return { organization, adminUser };
     });
 
+    // Log successful registration
+    await this.auditService.logRegistrationSuccess(
+      result.organization.name,
+      dto.adminEmail,
+      result.organization.id,
+      ipAddress,
+    );
+
     // Return without password
     const { password: _, ...adminUserWithoutPassword } = result.adminUser;
 
@@ -78,32 +100,79 @@ export class AuthService {
       organization: result.organization,
       adminUser: adminUserWithoutPassword,
     };
+    } catch (error) {
+      // If not already logged, log generic registration failure
+      if (!(error instanceof ConflictException)) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        await this.auditService.logRegistrationFailure(
+          dto.adminEmail,
+          errorMessage,
+          ipAddress,
+        );
+      }
+      throw error;
+    }
   }
 
   /**
-   * Login with email, password, and organization slug
+   * Login with email, password, and optional organization slug
+   * If slug not provided, auto-detects organization from email
    * Returns JWT token with user and organization context
    */
   async login(dto: LoginDto) {
-    // Find organization by slug
-    const organization = await this.prisma.organization.findUnique({
-      where: { slug: dto.organizationSlug },
-    });
+    const ipAddress = this.request.ip || this.request.headers['x-forwarded-for'] as string || 'unknown';
+    const userAgent = this.request.headers['user-agent'] || 'unknown';
 
-    if (!organization) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    let organization;
+    let user;
 
-    // Find user by email and organization
-    const user = await this.prisma.user.findFirst({
-      where: {
-        email: dto.email,
-        organizationId: organization.id,
-      },
-    });
+    try {
+      if (dto.organizationSlug) {
+      // Slug provided - use traditional login flow
+      organization = await this.prisma.organization.findUnique({
+        where: { slug: dto.organizationSlug },
+      });
 
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      if (!organization) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      user = await this.prisma.user.findFirst({
+        where: {
+          email: dto.email,
+          organizationId: organization.id,
+        },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+    } else {
+      // No slug - auto-detect from email
+      const users = await this.prisma.user.findMany({
+        where: { email: dto.email },
+        include: { organization: true },
+      });
+
+      if (users.length === 0) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      if (users.length > 1) {
+        // Multiple organizations - return list for user to choose
+        const organizations = users.map((u) => ({
+          slug: u.organization.slug,
+          name: u.organization.name,
+        }));
+        throw new UnauthorizedException({
+          message: 'Multiple organizations found. Please specify which one.',
+          organizations,
+        });
+      }
+
+      // Exactly one user found - proceed with login
+      user = users[0];
+      organization = user.organization;
     }
 
     // Verify password
@@ -128,18 +197,38 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
+      // Return user without password
+      const { password: _, organization: _org, ...userWithoutPassword } = user;
 
-    return {
-      accessToken,
-      user: userWithoutPassword,
-      organization: {
-        id: organization.id,
-        name: organization.name,
-        slug: organization.slug,
-      },
-    };
+      // Log successful login
+      await this.auditService.logLoginSuccess(
+        user.email,
+        user.id,
+        organization.id,
+        ipAddress,
+        userAgent,
+      );
+
+      return {
+        access_token: accessToken,
+        user: userWithoutPassword,
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+        },
+      };
+    } catch (error) {
+      // Log failed login attempt
+      const errorMessage = error instanceof Error ? error.message : 'Invalid credentials';
+      await this.auditService.logLoginFailure(
+        dto.email,
+        errorMessage,
+        ipAddress,
+        userAgent,
+      );
+      throw error;
+    }
   }
 
   /**

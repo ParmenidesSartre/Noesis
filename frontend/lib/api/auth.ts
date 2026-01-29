@@ -1,5 +1,8 @@
 import apiClient, { setAuthToken, removeAuthToken } from './client';
-import { LoginRequest, LoginResponse, RegisterRequest, User } from './types';
+import { secureStorage } from '../secureStorage';
+import { regenerateCsrfToken, clearCsrfToken } from '../csrf';
+import { logAuditEvent, AuditEventType, AuditSeverity } from '../auditLogger';
+import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User } from './types';
 
 export const authApi = {
   /**
@@ -8,11 +11,13 @@ export const authApi = {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
 
-    // Store token and user data
+    // Store token and user data encrypted in sessionStorage
     if (response.data.access_token) {
-      setAuthToken(response.data.access_token);
+      await setAuthToken(response.data.access_token);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        await secureStorage.setItem('user', JSON.stringify(response.data.user));
+        // Regenerate CSRF token for new session
+        regenerateCsrfToken();
       }
     }
 
@@ -22,17 +27,8 @@ export const authApi = {
   /**
    * Register a new organization
    */
-  async register(data: RegisterRequest): Promise<LoginResponse> {
-    const response = await apiClient.post<LoginResponse>('/auth/register', data);
-
-    // Store token and user data
-    if (response.data.access_token) {
-      setAuthToken(response.data.access_token);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
-    }
-
+  async register(data: RegisterRequest): Promise<RegisterResponse> {
+    const response = await apiClient.post<RegisterResponse>('/auth/register', data);
     return response.data;
   },
 
@@ -40,19 +36,31 @@ export const authApi = {
    * Logout current user
    */
   async logout(): Promise<void> {
+    // Get user email before logout
+    const user = await this.getCurrentUser();
+
     try {
       await apiClient.post('/auth/logout');
     } finally {
-      removeAuthToken();
+      // Log logout event
+      logAuditEvent(
+        AuditEventType.LOGOUT,
+        AuditSeverity.INFO,
+        `User logged out`,
+        { email: user?.email }
+      );
+
+      await removeAuthToken();
+      clearCsrfToken();
     }
   },
 
   /**
-   * Get current user from local storage
+   * Get current user from secure storage
    */
-  getCurrentUser(): User | null {
+  async getCurrentUser(): Promise<User | null> {
     if (typeof window !== 'undefined') {
-      const userStr = localStorage.getItem('user');
+      const userStr = await secureStorage.getItem('user');
       if (userStr) {
         try {
           return JSON.parse(userStr) as User;
@@ -67,9 +75,10 @@ export const authApi = {
   /**
    * Check if user is authenticated
    */
-  isAuthenticated(): boolean {
+  async isAuthenticated(): Promise<boolean> {
     if (typeof window !== 'undefined') {
-      return !!localStorage.getItem('access_token');
+      const token = await secureStorage.getItem('access_token');
+      return !!token;
     }
     return false;
   },

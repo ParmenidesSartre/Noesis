@@ -13,6 +13,7 @@ import { ParentsModule } from './parents/parents.module';
 import { BranchesModule } from './branches/branches.module';
 import { DocumentsModule } from './documents/documents.module';
 import { LeaveModule } from './leave/leave.module';
+import { AuditModule } from './audit/audit.module';
 import { validateEnv } from './config/env.validation';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -49,6 +50,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     PrismaModule,
     LoggerModule,
     HealthModule,
+    AuditModule,
 
     // Feature modules
     AuthModule,

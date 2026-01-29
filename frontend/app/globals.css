@@ -110,6 +110,15 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Smooth transitions for interactive elements */
+@layer components {
+  .transition-smooth {
+    @apply transition-all duration-200 ease-in-out;
   }
 }
