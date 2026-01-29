@@ -8,8 +8,17 @@ export class BranchesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createBranchDto: CreateBranchDto) {
+    const { organizationId, ...branchData } = createBranchDto;
+
+    if (!organizationId) {
+      throw new Error('organizationId is required');
+    }
+
     return this.prisma.branch.create({
-      data: createBranchDto,
+      data: {
+        ...branchData,
+        organizationId,
+      },
     });
   }
 

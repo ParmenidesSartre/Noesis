@@ -69,9 +69,10 @@ export default function BranchesPage() {
     try {
       setLoading(true);
       const data = await branchesApi.getAll();
-      setBranches(data);
+      setBranches(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load branches:', error);
+      setBranches([]);
     } finally {
       setLoading(false);
     }

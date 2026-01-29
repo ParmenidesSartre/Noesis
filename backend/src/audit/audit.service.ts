@@ -66,7 +66,7 @@ export class AuditService {
           eventType: dto.eventType,
           severity: dto.severity,
           message: dto.message,
-          metadata: dto.metadata || {},
+          metadata: (dto.metadata || {}) as never,
           userId: dto.userId,
           userEmail: dto.userEmail,
           organizationId: dto.organizationId,
