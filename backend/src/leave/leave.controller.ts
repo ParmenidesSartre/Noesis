@@ -15,8 +15,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role, LeaveType, LeaveStatus } from '@prisma/client';
-import {
-  LeaveService,
+import { LeaveService } from './leave.service';
+import type {
   CreateLeaveRequestDto,
   UpdateLeaveRequestDto,
   ReviewLeaveDto,

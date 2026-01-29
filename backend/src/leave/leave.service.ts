@@ -319,7 +319,7 @@ export class LeaveService {
     adminRole: Role,
   ) {
     // Only admins can approve
-    if (![Role.SUPER_ADMIN, Role.BRANCH_ADMIN].includes(adminRole)) {
+    if (adminRole !== Role.SUPER_ADMIN && adminRole !== Role.BRANCH_ADMIN) {
       throw new ForbiddenException('Only admins can approve leave requests');
     }
 
@@ -381,7 +381,7 @@ export class LeaveService {
     adminRole: Role,
   ) {
     // Only admins can reject
-    if (![Role.SUPER_ADMIN, Role.BRANCH_ADMIN].includes(adminRole)) {
+    if (adminRole !== Role.SUPER_ADMIN && adminRole !== Role.BRANCH_ADMIN) {
       throw new ForbiddenException('Only admins can reject leave requests');
     }
 
@@ -543,9 +543,9 @@ export class LeaveService {
     // Sum up used days by leave type
     for (const leave of approvedLeaves) {
       balances[leave.leaveType].used += leave.totalDays;
-      if (balances[leave.leaveType].total !== null) {
-        balances[leave.leaveType].remaining =
-          balances[leave.leaveType].total - balances[leave.leaveType].used;
+      const total = balances[leave.leaveType].total;
+      if (total !== null) {
+        balances[leave.leaveType].remaining = total - balances[leave.leaveType].used;
       }
     }
 
@@ -566,7 +566,7 @@ export class LeaveService {
     branchId?: number,
   ) {
     // Only admins can view all pending requests
-    if (![Role.SUPER_ADMIN, Role.BRANCH_ADMIN].includes(adminRole)) {
+    if (adminRole !== Role.SUPER_ADMIN && adminRole !== Role.BRANCH_ADMIN) {
       throw new ForbiddenException(
         'Only admins can view all pending leave requests',
       );
