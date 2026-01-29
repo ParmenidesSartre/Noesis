@@ -26,27 +26,8 @@ services:
     networks:
       - tuition-network
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    container_name: tuition-centre-redis
-    command: redis-server --appendonly yes --requirepass dev_redis_password
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    networks:
-      - tuition-network
-
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
     driver: local
 
 networks:

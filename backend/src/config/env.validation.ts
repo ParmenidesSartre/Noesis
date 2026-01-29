@@ -20,10 +20,6 @@ export const envValidationSchema = Joi.object({
     .optional()
     .description('PostgreSQL read replica connection string (optional)'),
 
-  // Redis
-  REDIS_HOST: Joi.string().default('localhost'),
-  REDIS_PORT: Joi.number().default(6379),
-
   // JWT
   JWT_SECRET: Joi.string().required().min(32).description('JWT secret key (minimum 32 characters)'),
   JWT_EXPIRATION: Joi.string().default('1d'),
