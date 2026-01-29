@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({
@@ -22,11 +22,13 @@ export class LoginDto {
 
   @ApiProperty({
     example: 'abc-tuition',
-    description: 'Organization slug to establish tenant context',
+    description: 'Organization slug to establish tenant context (optional - will be auto-detected from email if not provided)',
+    required: false,
   })
+  @IsOptional()
   @IsString()
   @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
     message: 'organizationSlug must contain only lowercase letters, numbers, and hyphens',
   })
-  organizationSlug: string;
+  organizationSlug?: string;
 }

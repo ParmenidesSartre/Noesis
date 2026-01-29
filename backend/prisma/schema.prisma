@@ -740,3 +740,35 @@ model LeaveRequest {
   @@index([endDate])
   @@map("leave_requests")
 }
+
+// Audit Log for security events
+model AuditLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+
+  // Event classification
+  eventType String // LOGIN_SUCCESS, LOGIN_FAILURE, LOGOUT, etc.
+  severity  String // INFO, WARNING, ERROR, CRITICAL
+
+  // Event details
+  message  String
+  metadata Json? // Additional event data
+
+  // User context
+  userId         Int?
+  userEmail      String?
+  organizationId Int?
+
+  // Device/session context
+  ipAddress  String?
+  userAgent  String?
+  fingerprint String? // Browser fingerprint hash
+
+  @@index([eventType])
+  @@index([severity])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([timestamp])
+  @@index([userEmail])
+  @@map("audit_logs")
+}

@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: noesis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tuition_centre_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - noesis-network
+
+  # Backend API (Development with hot reload)
+  backend:
+    image: node:18-alpine
+    container_name: noesis-backend
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "3001:3001"
+    environment:
+      # Database
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/tuition_centre_db
+
+      # JWT
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_EXPIRATION: 7d
+
+      # Node Environment
+      NODE_ENV: development
+      PORT: 3001
+
+      # Storage
+      STORAGE_TYPE: local
+      LOCAL_STORAGE_PATH: ./uploads
+
+      # CORS
+      CORS_ORIGIN: http://localhost:3000
+
+      # Log Level
+      LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount source code for hot reload
+      - ./backend:/app
+      # Use named volume for node_modules (faster and avoids conflicts)
+      - backend_node_modules:/app/node_modules
+      # Mount uploads separately
+      - backend_uploads:/app/uploads
+    command: sh -c "apk add --no-cache openssl && npm install -g pnpm && pnpm install && npx prisma generate && npx prisma migrate deploy && pnpm run start:dev"
+    networks:
+      - noesis-network
+
+  # Frontend Web App (Development with hot reload)
+  frontend:
+    image: node:18-alpine
+    container_name: noesis-frontend
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NODE_ENV: development
+    depends_on:
+      - backend
+    volumes:
+      # Mount source code for hot reload
+      - ./frontend:/app
+      # Use named volume for node_modules
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm install -g pnpm && pnpm install && pnpm run dev"
+    networks:
+      - noesis-network
+
+volumes:
+  postgres_data:
+    name: noesis-postgres-data
+  backend_uploads:
+    name: noesis-backend-uploads
+  backend_node_modules:
+    name: noesis-backend-node-modules
+  frontend_node_modules:
+    name: noesis-frontend-node-modules
+
+networks:
+  noesis-network:
+    name: noesis-network
+    driver: bridge

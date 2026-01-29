@@ -1,26 +1,41 @@
 import { Injectable } from '@nestjs/common';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class BranchesService {
-  create(_createBranchDto: CreateBranchDto) {
-    return 'This action adds a new branch';
+  constructor(private prisma: PrismaService) {}
+
+  async create(createBranchDto: CreateBranchDto) {
+    return this.prisma.branch.create({
+      data: createBranchDto,
+    });
   }
 
-  findAll() {
-    return `This action returns all branches`;
+  async findAll(organizationId: number) {
+    return this.prisma.branch.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} branch`;
+  async findOne(id: number, organizationId: number) {
+    return this.prisma.branch.findFirst({
+      where: { id, organizationId },
+    });
   }
 
-  update(id: number, _updateBranchDto: UpdateBranchDto) {
-    return `This action updates a #${id} branch`;
+  async update(id: number, updateBranchDto: UpdateBranchDto, organizationId: number) {
+    return this.prisma.branch.update({
+      where: { id, organizationId },
+      data: updateBranchDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} branch`;
+  async remove(id: number, organizationId: number) {
+    return this.prisma.branch.delete({
+      where: { id, organizationId },
+    });
   }
 }
