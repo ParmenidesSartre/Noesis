@@ -96,6 +96,23 @@ export function CreateUserModal({ onClose, onSuccess }: CreateUserModalProps) {
     },
   });
 
+  // Helper function to remove empty string fields
+  const removeEmptyFields = <T extends Record<string, any>>(obj: T): Partial<T> => {
+    const cleaned: any = {};
+    Object.keys(obj).forEach(key => {
+      const value = obj[key];
+      if (value !== '' && value !== null) {
+        // For nested objects (like parent in student form)
+        if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+          cleaned[key] = removeEmptyFields(value);
+        } else {
+          cleaned[key] = value;
+        }
+      }
+    });
+    return cleaned;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -103,12 +120,14 @@ export function CreateUserModal({ onClose, onSuccess }: CreateUserModalProps) {
 
     try {
       if (selectedRole === Role.TEACHER) {
-        const result = await usersApi.createTeacher(teacherForm);
+        const cleanedForm = removeEmptyFields(teacherForm) as CreateTeacherRequest;
+        const result = await usersApi.createTeacher(cleanedForm);
         setTemporaryPassword(result.temporaryPassword);
         alert(`Teacher created successfully!\n\nEmail: ${result.user.email}\nTemporary Password: ${result.temporaryPassword}\n\nPlease share these credentials securely.`);
         onSuccess();
       } else if (selectedRole === Role.STUDENT) {
-        const result = await usersApi.createStudent(studentForm);
+        const cleanedForm = removeEmptyFields(studentForm) as CreateStudentRequest;
+        const result = await usersApi.createStudent(cleanedForm);
         let message = 'Student and parent created successfully!\n\n';
         if (result.temporaryPasswords.student) {
           message += `Student Email: ${result.student.email}\nStudent Password: ${result.temporaryPasswords.student}\n\n`;
@@ -121,7 +140,8 @@ export function CreateUserModal({ onClose, onSuccess }: CreateUserModalProps) {
         onSuccess();
       } else {
         // General user creation
-        await usersApi.create(generalForm);
+        const cleanedForm = removeEmptyFields(generalForm) as CreateUserRequest;
+        await usersApi.create(cleanedForm);
         alert('User created successfully!');
         onSuccess();
       }
